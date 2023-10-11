@@ -35,47 +35,62 @@ func startDaemon() {
 	currentEntries := make([]macPerson, 0)
 
 	for true {
-		// read file for new entries
-		file, err := os.Open(inputFile)
-		if err != nil {
-			log.Fatal(err)
-		}
-		scanner := bufio.NewScanner(file)
-
-		for scanner.Scan() {
-			line := scanner.Text()
-			mac, user, _ := strings.Cut(line, " ")
-			insertEntry(currentEntries, mac, user)
-			// fmt.Println("FILE:" + line)
-		}
-
-		if err := scanner.Err(); err != nil {
-			log.Fatal(err)
-		}
-
-		file.Close()
-
-		// fmt.Println("ARRAY:")
-		// for i := 0; i < counter; i++ {
-		// 	fmt.Println(currentEntries[i])
-		// }
+		fileEntries := scanFile()
+		newEntries := findNewEntries(currentEntries, fileEntries)
+		allowNewEntries(newEntries)
+		// checkIfStilConnected
+		// deleteOldEntries
 
 		time.Sleep(1 * time.Second)
 	}
 }
 
-func insertEntry(currentEntries []macPerson, mac string, user string) {
-	if searchMac(currentEntries, mac) {
-		return
+func scanFile() (fileEntries []macPerson) {
+	// read file for new entries
+	file, err := os.Open(inputFile)
+	if err != nil {
+		log.Fatal(err)
 	}
-	currentEntries = append(currentEntries, macPerson{mac, user, time.Now()})
+	scanner := bufio.NewScanner(file)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		mac, user, _ := strings.Cut(line, " ")
+		fileEntries = append(fileEntries, macPerson{mac, user, time.Now()})
+	}
+
+	if err := scanner.Err(); err != nil {
+		log.Fatal(err)
+	}
+
+	file.Close()
+	return
 }
 
-func searchMac(currentEntries []macPerson, mac string) bool {
-	for _, value := range currentEntries {
+func findNewEntries(currenEntries []macPerson, fileEntries []macPerson) (newEntries []macPerson) {
+	for _, value := range fileEntries {
+		if !searchMac(currenEntries, value.mac) {
+			newEntries = append(newEntries, value)
+		}
+	}
+	return
+}
+
+func insertEntry(entries []macPerson, mac string, user string) {
+	if searchMac(entries, mac) {
+		return
+	}
+	entries = append(entries, macPerson{mac, user, time.Now()})
+}
+
+func searchMac(entries []macPerson, mac string) bool {
+	for _, value := range entries {
 		if value.mac == mac {
 			return true
 		}
 	}
 	return false
+}
+
+func allowNewEntries(entries []macPerson) {
 }
