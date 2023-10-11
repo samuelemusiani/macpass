@@ -10,18 +10,20 @@ import (
 	"syscall"
 
 	"github.com/go-ldap/ldap"
+	"github.com/spf13/viper"
 	"golang.org/x/term"
 )
 
-const ldapUri string = "ldap://ldap.forumsys.com:389" //Server to test
-const baseDN string = "dc=example,dc=com"
-const bindAdmin string = "cn=read-only-admin," + baseDN
-const bindPassword string = "password"
-const userDNType string = "uid"
+var ldapUri string = ""
+var baseDN string = ""
+var bindAdmin string = ""
+var bindPassword string = ""
+var userDNType string = ""
 
 func main() {
 	// TODO: Parse config file
 
+	setConfig()
 	user, _ := ldapAuth()
 	macAdd, _ := macRegistration()
 
@@ -91,4 +93,28 @@ func macRegistration() (string, error) {
 	}
 
 	return macAdd, nil
+}
+
+func setConfig() {
+	viper.SetConfigName("config")
+	viper.SetConfigType("toml")
+	viper.AddConfigPath(".") // for now the config should be in the same directory
+
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			log.Println("Config file not found")
+			log.Fatal(err)
+		} else {
+			log.Println("Config file was found but another error was produced")
+			log.Fatal(err)
+		}
+	}
+
+	log.Println("Config file found and successfully parsed")
+
+	ldapUri = viper.GetString("ldapUri")
+	baseDN = viper.GetString("baseDN")
+	bindAdmin = viper.GetString("bindAdmin")
+	bindPassword = viper.GetString("bindPassword")
+	userDNType = viper.GetString("userDNType")
 }
