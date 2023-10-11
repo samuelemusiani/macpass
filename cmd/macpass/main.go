@@ -24,8 +24,7 @@ var outFilePath string = ""
 
 func main() {
 	setConfig()
-	// user, _ := ldapAuth()
-	user := "pippo"
+	user, _ := ldapAuth()
 	macAdd, _ := macRegistration()
 
 	fmt.Println(macAdd + "\t" + user)
