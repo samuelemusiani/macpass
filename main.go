@@ -19,15 +19,25 @@ var baseDN string = ""
 var bindAdmin string = ""
 var bindPassword string = ""
 var userDNType string = ""
+var outFilePath string = ""
 
 func main() {
-	// TODO: Parse config file
-
 	setConfig()
-	user, _ := ldapAuth()
+	// user, _ := ldapAuth()
+	user := "pippo"
 	macAdd, _ := macRegistration()
 
 	fmt.Println(macAdd + "\t" + user)
+
+	f, err := os.OpenFile(outFilePath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+
+	if _, err = f.WriteString(macAdd + " " + user + "\n"); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func ldapAuth() (string, error) {
@@ -38,6 +48,7 @@ func ldapAuth() (string, error) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer l.Close()
 
 	// First bind with a read only user
 	err = l.Bind(bindAdmin, bindPassword)
@@ -51,8 +62,6 @@ func ldapAuth() (string, error) {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	defer l.Close()
 
 	return username, nil
 }
@@ -117,4 +126,5 @@ func setConfig() {
 	bindAdmin = viper.GetString("bindAdmin")
 	bindPassword = viper.GetString("bindPassword")
 	userDNType = viper.GetString("userDNType")
+	outFilePath = viper.GetString("outFilePath")
 }
