@@ -2,7 +2,7 @@ package main
 
 import (
 	"bufio"
-	"fmt"
+	// "fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -101,7 +101,7 @@ func searchMac(entries []macPerson, mac string) bool {
 }
 
 func denyAllMACs(t *iptables.IPTables) {
-	t.Append("filter", "FORWARD", []string{"-i", "eth1", "-0", "eth0",
+	t.Append("filter", "FORWARD", []string{"-i", "eth1", "-o", "eth0",
 		"-j", "DROP"}...)
 }
 
