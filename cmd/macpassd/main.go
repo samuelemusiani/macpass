@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/coreos/go-iptables/iptables"
 )
 
 var inputFile string
@@ -34,10 +36,16 @@ type macPerson struct {
 func startDaemon() {
 	currentEntries := make([]macPerson, 0)
 
+	ip4t, err := iptables.NewWithProtocol(iptables.ProtocolIPv4)
+	if err != nil {
+		log.Fatal(err)
+	}
+	denyAllMACs(ip4t)
+
 	for true {
 		fileEntries := scanFile()
 		newEntries := findNewEntries(currentEntries, fileEntries)
-		allowNewEntries(newEntries)
+		allowNewEntries(newEntries, ip4t)
 		// checkIfStilConnected
 		// deleteOldEntries
 
@@ -92,5 +100,14 @@ func searchMac(entries []macPerson, mac string) bool {
 	return false
 }
 
-func allowNewEntries(entries []macPerson) {
+func denyAllMACs(t *iptables.IPTables) {
+	t.Append("filter", "FORWARD", []string{"-i", "eth1", "-0", "eth0",
+		"-j", "DROP"}...)
+}
+
+func allowNewEntries(entries []macPerson, t *iptables.IPTables) {
+	for _, value := range entries {
+		t.InsertUnique("filter", "FORWARD", 1, []string{"-i", "eth1", "-o", "eht0",
+			"-m", "mac", "--mac-source", value.mac, "-j", "ACCEPT"}...)
+	}
 }

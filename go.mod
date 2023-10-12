@@ -5,6 +5,7 @@ go 1.21.2
 require github.com/go-ldap/ldap v3.0.3+incompatible
 
 require (
+	github.com/coreos/go-iptables v0.7.0 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
