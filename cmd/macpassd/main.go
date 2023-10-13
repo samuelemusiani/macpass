@@ -3,16 +3,20 @@ package main
 import (
 	"bufio"
 	"fmt"
-	// "fmt"
+	"io"
 	"log"
+	"net"
 	"os"
+	"os/signal"
 	"strings"
+	"sync"
+	"syscall"
 	"time"
 
 	"github.com/coreos/go-iptables/iptables"
 )
 
-var inputFile string
+var socketPath string
 
 func main() {
 	parseConfig()
@@ -20,12 +24,7 @@ func main() {
 }
 
 func parseConfig() {
-	// ex, err := os.Executable()
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// inputFile = filepath.Dir(ex) + "/mac_out"
-	inputFile = "./mac_out" // very ugly
+	socketPath = "/tmp/macpass.sock" // very ugly
 }
 
 type registration struct {
@@ -38,65 +37,87 @@ type macRegistration struct {
 	reg registration
 }
 
+type safeMap struct {
+	mu sync.Mutex
+	v  map[string]registration
+}
+
 func startDaemon() {
-	currentEntries := make(map[string]registration)
+	// Hashmap were al the entries that are currently in use are stored
+	// currentEntries := make(map[string]registration)
+	currentEntries := safeMap{v: make(map[string]registration)}
 
 	ip4t, err := iptables.NewWithProtocol(iptables.ProtocolIPv4)
 	if err != nil {
 		log.Fatal(err)
 	}
+	// We need to clear the iptable table in order to avoid previus entries
 	ip4t.ClearAll()
+
+	// The default rule of the firewall is deny all connection
 	denyAllMACs(ip4t)
 
-	for true {
-		fileEntries := scanFile()
-		newEntries := findNewEntries(currentEntries, fileEntries)
-		allowNewEntries(newEntries, ip4t)
-		addNewEntriesToMap(currentEntries, newEntries)
-		newEntries = nil
+	// Create a socket for comunication between macpass and macpassd
+	socket, err := net.Listen("unix", socketPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Cleanup the sockfile
+	closeChannel := make(chan os.Signal, 1)
+	signal.Notify(closeChannel, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-closeChannel
+		os.Remove(socketPath)
+		os.Exit(1)
+	}()
+
+	// Accept connection and read from the socket
+	go func(currentEntries *safeMap) {
+		for {
+			conn, err := socket.Accept()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			reader := bufio.NewReader(conn)
+			rawEntry, err := reader.ReadString('\n')
+			if err != nil {
+				if err == io.EOF {
+					fmt.Println("Read EOF")
+					conn.Close()
+					continue
+				}
+
+				log.Fatal(err)
+			}
+			newEntry := convert(rawEntry)
+
+			// Check if the entry is really new
+			currentEntries.mu.Lock()
+			if _, present := currentEntries.v[newEntry.mac]; !present {
+				allowNewEntry(newEntry, ip4t)
+				addNewEntryToMap(currentEntries, newEntry)
+			}
+			currentEntries.mu.Unlock()
+		}
+	}(&currentEntries)
+
+	for {
 		// checkIfStilConnected
-		deleteOldEntries(currentEntries, ip4t)
-		fmt.Println("currentEntries DELETE: ", currentEntries)
+		deleteOldEntries(&currentEntries, ip4t)
 
 		time.Sleep(1 * time.Second)
 	}
 }
 
-func scanFile() (fileEntries []macRegistration) {
-	// read file for new entries
-	file, err := os.Open(inputFile)
-	if err != nil {
-		log.Fatal(err)
-	}
-	scanner := bufio.NewScanner(file)
-
-	for scanner.Scan() {
-		line := scanner.Text()
-		mac, user, _ := strings.Cut(line, " ")
-		fileEntries = append(fileEntries, macRegistration{mac, registration{user, time.Now()}})
-	}
-
-	if err := scanner.Err(); err != nil {
-		log.Fatal(err)
-	}
-
-	file.Close()
-	return
+func convert(raw string) macRegistration {
+	mac, user, _ := strings.Cut(raw, " ")
+	return macRegistration{mac, registration{user, time.Now()}}
 }
 
-func findNewEntries(currenEntries map[string]registration, fileEntries []macRegistration) (newEntries []macRegistration) {
-	for _, value := range fileEntries {
-		if _, present := currenEntries[value.mac]; !present {
-			newEntries = append(newEntries, value)
-		}
-	}
-	return
-}
-
-func addNewEntriesToMap(m map[string]registration, n []macRegistration) {
-	for _, val := range n {
-		m[val.mac] = val.reg
-	}
+func addNewEntryToMap(m *safeMap, n macRegistration) {
+	m.v[n.mac] = n.reg
 }
 
 func denyAllMACs(t *iptables.IPTables) {
@@ -104,19 +125,18 @@ func denyAllMACs(t *iptables.IPTables) {
 		"-j", "DROP"}...)
 }
 
-func allowNewEntries(entries []macRegistration, t *iptables.IPTables) {
-	for _, value := range entries {
-		err := t.InsertUnique("filter", "FORWARD", 1, []string{"-i", "eth1", "-o", "eth0",
-			"-m", "mac", "--mac-source", value.mac, "-j", "ACCEPT"}...)
+func allowNewEntry(e macRegistration, t *iptables.IPTables) {
+	err := t.InsertUnique("filter", "FORWARD", 1, []string{"-i", "eth1", "-o", "eth0",
+		"-m", "mac", "--mac-source", e.mac, "-j", "ACCEPT"}...)
 
-		if err != nil {
-			log.Fatal(err)
-		}
+	if err != nil {
+		log.Fatal(err)
 	}
 }
 
-func deleteOldEntries(entries map[string]registration, t *iptables.IPTables) {
-	for mac, value := range entries {
+func deleteOldEntries(entries *safeMap, t *iptables.IPTables) {
+	entries.mu.Lock()
+	for mac, value := range entries.v {
 
 		fmt.Println("Checking: ", mac)
 		fmt.Println("Time: ", time.Since(value.start))
@@ -128,7 +148,8 @@ func deleteOldEntries(entries map[string]registration, t *iptables.IPTables) {
 			if err != nil {
 				log.Fatal(err)
 			}
-			delete(entries, mac)
+			delete(entries.v, mac)
 		}
 	}
+	entries.mu.Unlock()
 }
