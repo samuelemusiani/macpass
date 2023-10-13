@@ -20,11 +20,12 @@ func main() {
 }
 
 func parseConfig() {
-	ex, err := os.Executable()
-	if err != nil {
-		log.Fatal(err)
-	}
-	inputFile = filepath.Dir(ex) + "/mac_out"
+	// ex, err := os.Executable()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// inputFile = filepath.Dir(ex) + "/mac_out"
+	inputFile = "/home/auth/mac_out" // very ugly
 }
 
 type macPerson struct {
