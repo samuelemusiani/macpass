@@ -40,6 +40,7 @@ func startDaemon() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	ip4t.ClearAll()
 	denyAllMACs(ip4t)
 
 	for true {
