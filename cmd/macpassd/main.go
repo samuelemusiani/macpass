@@ -107,7 +107,7 @@ func denyAllMACs(t *iptables.IPTables) {
 
 func allowNewEntries(entries []macPerson, t *iptables.IPTables) {
 	for _, value := range entries {
-		t.InsertUnique("filter", "FORWARD", 1, []string{"-i", "eth1", "-o", "eht0",
+		t.InsertUnique("filter", "FORWARD", 1, []string{"-i", "eth1", "-o", "eth0",
 			"-m", "mac", "--mac-source", value.mac, "-j", "ACCEPT"}...)
 	}
 }
