@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	// "fmt"
 	"log"
 	"os"
@@ -24,17 +25,21 @@ func parseConfig() {
 	// 	log.Fatal(err)
 	// }
 	// inputFile = filepath.Dir(ex) + "/mac_out"
-	inputFile = "/home/auth/mac_out" // very ugly
+	inputFile = "./mac_out" // very ugly
 }
 
-type macPerson struct {
-	mac   string
+type registration struct {
 	user  string
 	start time.Time
 }
 
+type macRegistration struct {
+	mac string
+	reg registration
+}
+
 func startDaemon() {
-	currentEntries := make([]macPerson, 0)
+	currentEntries := make(map[string]registration)
 
 	ip4t, err := iptables.NewWithProtocol(iptables.ProtocolIPv4)
 	if err != nil {
@@ -47,14 +52,17 @@ func startDaemon() {
 		fileEntries := scanFile()
 		newEntries := findNewEntries(currentEntries, fileEntries)
 		allowNewEntries(newEntries, ip4t)
+		addNewEntriesToMap(currentEntries, newEntries)
+		newEntries = nil
 		// checkIfStilConnected
-		// deleteOldEntries
+		deleteOldEntries(currentEntries, ip4t)
+		fmt.Println("currentEntries DELETE: ", currentEntries)
 
 		time.Sleep(1 * time.Second)
 	}
 }
 
-func scanFile() (fileEntries []macPerson) {
+func scanFile() (fileEntries []macRegistration) {
 	// read file for new entries
 	file, err := os.Open(inputFile)
 	if err != nil {
@@ -65,7 +73,7 @@ func scanFile() (fileEntries []macPerson) {
 	for scanner.Scan() {
 		line := scanner.Text()
 		mac, user, _ := strings.Cut(line, " ")
-		fileEntries = append(fileEntries, macPerson{mac, user, time.Now()})
+		fileEntries = append(fileEntries, macRegistration{mac, registration{user, time.Now()}})
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -76,29 +84,19 @@ func scanFile() (fileEntries []macPerson) {
 	return
 }
 
-func findNewEntries(currenEntries []macPerson, fileEntries []macPerson) (newEntries []macPerson) {
+func findNewEntries(currenEntries map[string]registration, fileEntries []macRegistration) (newEntries []macRegistration) {
 	for _, value := range fileEntries {
-		if !searchMac(currenEntries, value.mac) {
+		if _, present := currenEntries[value.mac]; !present {
 			newEntries = append(newEntries, value)
 		}
 	}
 	return
 }
 
-func insertEntry(entries []macPerson, mac string, user string) {
-	if searchMac(entries, mac) {
-		return
+func addNewEntriesToMap(m map[string]registration, n []macRegistration) {
+	for _, val := range n {
+		m[val.mac] = val.reg
 	}
-	entries = append(entries, macPerson{mac, user, time.Now()})
-}
-
-func searchMac(entries []macPerson, mac string) bool {
-	for _, value := range entries {
-		if value.mac == mac {
-			return true
-		}
-	}
-	return false
 }
 
 func denyAllMACs(t *iptables.IPTables) {
@@ -106,9 +104,31 @@ func denyAllMACs(t *iptables.IPTables) {
 		"-j", "DROP"}...)
 }
 
-func allowNewEntries(entries []macPerson, t *iptables.IPTables) {
+func allowNewEntries(entries []macRegistration, t *iptables.IPTables) {
 	for _, value := range entries {
-		t.InsertUnique("filter", "FORWARD", 1, []string{"-i", "eth1", "-o", "eth0",
+		err := t.InsertUnique("filter", "FORWARD", 1, []string{"-i", "eth1", "-o", "eth0",
 			"-m", "mac", "--mac-source", value.mac, "-j", "ACCEPT"}...)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+}
+
+func deleteOldEntries(entries map[string]registration, t *iptables.IPTables) {
+	for mac, value := range entries {
+
+		fmt.Println("Checking: ", mac)
+		fmt.Println("Time: ", time.Since(value.start))
+
+		if time.Since(value.start) >= 5*time.Second {
+			err := t.Delete("filter", "FORWARD", []string{"-i", "eth1", "-o", "eth0",
+				"-m", "mac", "--mac-source", mac, "-j", "ACCEPT"}...)
+
+			if err != nil {
+				log.Fatal(err)
+			}
+			delete(entries, mac)
+		}
 	}
 }
