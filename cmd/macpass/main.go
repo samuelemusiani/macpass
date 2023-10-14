@@ -20,7 +20,7 @@ var baseDN string = ""
 var bindAdmin string = ""
 var bindPassword string = ""
 var userDNType string = ""
-var outFilePath string = ""
+var socketPath string = ""
 
 func main() {
 	setConfig()
@@ -29,21 +29,21 @@ func main() {
 
 	fmt.Println(macAdd + "\t" + user)
 
-	f, err := os.OpenFile(outFilePath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	// Connect to macpassd socket
+	conn, err := net.Dial("unix", "/tmp/macpass.sock")
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer f.Close()
 
-	if _, err = f.WriteString(macAdd + " " + user + "\n"); err != nil {
+	_, err = conn.Write([]byte(macAdd + " " + user + "\n"))
+	if err != nil {
 		log.Fatal(err)
 	}
+
+	conn.Close()
 }
 
 func ldapAuth() (string, error) {
-	// Need to implement the auth part with ldap
-	// https://pkg.go.dev/github.com/go-ldap/ldap/v3
-
 	l, err := ldap.DialURL(ldapUri)
 	if err != nil {
 		log.Fatal(err)
@@ -132,5 +132,5 @@ func setConfig() {
 	bindAdmin = viper.GetString("bindAdmin")
 	bindPassword = viper.GetString("bindPassword")
 	userDNType = viper.GetString("userDNType")
-	outFilePath = viper.GetString("outFilePath")
+	socketPath = viper.GetString("socketPath")
 }

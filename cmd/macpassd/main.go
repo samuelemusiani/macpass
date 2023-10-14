@@ -63,6 +63,11 @@ func startDaemon() {
 		log.Fatal(err)
 	}
 
+	// For now everyone can write to the socket
+	if err := os.Chmod(socketPath, 0777); err != nil {
+		log.Fatal(err)
+	}
+
 	// Cleanup the sockfile
 	closeChannel := make(chan os.Signal, 1)
 	signal.Notify(closeChannel, os.Interrupt, syscall.SIGTERM)
