@@ -67,7 +67,7 @@ func startDaemon() {
 		// checkIfStilConnected() TODO
 		deleteOldEntries(&currentEntries, ip4t)
 
-		time.Sleep(1 * time.Second)
+		time.Sleep(10 * time.Second)
 	}
 }
 
