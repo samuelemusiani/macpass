@@ -141,16 +141,15 @@ func handleComunication(currentEntries *safeMap, ip4t *iptables.IPTables,
 
 		if err != nil {
 			if err == io.EOF {
-				fmt.Println("Read EOF")
 				conn.Close()
 				continue
 			}
 
-			log.Fatal(err)
+			log.Println(err)
 		}
 		var newEntry comunication.Request
 		if err := json.Unmarshal(buff[:n], &newEntry); err != nil {
-			log.Fatal(err)
+			log.Println(err)
 		}
 
 		// Check if the entry is really new
