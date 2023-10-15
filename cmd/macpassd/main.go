@@ -1,14 +1,14 @@
 package main
 
 import (
-	"bufio"
+	"encoding/json"
 	"fmt"
+	"internal/comunication"
 	"io"
 	"log"
 	"net"
 	"os"
 	"os/signal"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -28,8 +28,9 @@ func parseConfig() {
 }
 
 type registration struct {
-	user  string
-	start time.Time
+	user     string
+	start    time.Time
+	duration time.Duration
 }
 
 type macRegistration struct {
@@ -85,8 +86,13 @@ func startDaemon() {
 				log.Fatal(err)
 			}
 
-			reader := bufio.NewReader(conn)
-			rawEntry, err := reader.ReadString('\n')
+			buff := make([]byte, 4096)
+			n, err := conn.Read(buff)
+			// if err != nil {
+			// 	log.Fatal(err)
+			// }
+
+			// Do i still need this?
 			if err != nil {
 				if err == io.EOF {
 					fmt.Println("Read EOF")
@@ -96,11 +102,14 @@ func startDaemon() {
 
 				log.Fatal(err)
 			}
-			newEntry := convert(rawEntry)
+			var newEntry comunication.Request
+			if err := json.Unmarshal(buff[:n], &newEntry); err != nil {
+				log.Fatal(err)
+			}
 
 			// Check if the entry is really new
 			currentEntries.mu.Lock()
-			if _, present := currentEntries.v[newEntry.mac]; !present {
+			if _, present := currentEntries.v[newEntry.Mac]; !present {
 				allowNewEntry(newEntry, ip4t)
 				addNewEntryToMap(currentEntries, newEntry)
 			}
@@ -116,13 +125,8 @@ func startDaemon() {
 	}
 }
 
-func convert(raw string) macRegistration {
-	mac, user, _ := strings.Cut(raw, " ")
-	return macRegistration{mac, registration{user, time.Now()}}
-}
-
-func addNewEntryToMap(m *safeMap, n macRegistration) {
-	m.v[n.mac] = n.reg
+func addNewEntryToMap(m *safeMap, n comunication.Request) {
+	m.v[n.Mac] = registration{user: n.User, start: time.Now(), duration: n.Duration}
 }
 
 func denyAllMACs(t *iptables.IPTables) {
@@ -130,9 +134,9 @@ func denyAllMACs(t *iptables.IPTables) {
 		"-j", "DROP"}...)
 }
 
-func allowNewEntry(e macRegistration, t *iptables.IPTables) {
+func allowNewEntry(e comunication.Request, t *iptables.IPTables) {
 	err := t.InsertUnique("filter", "FORWARD", 1, []string{"-i", "eth1", "-o", "eth0",
-		"-m", "mac", "--mac-source", e.mac, "-j", "ACCEPT"}...)
+		"-m", "mac", "--mac-source", e.Mac, "-j", "ACCEPT"}...)
 
 	if err != nil {
 		log.Fatal(err)
@@ -146,7 +150,7 @@ func deleteOldEntries(entries *safeMap, t *iptables.IPTables) {
 		fmt.Println("Checking: ", mac)
 		fmt.Println("Time: ", time.Since(value.start))
 
-		if time.Since(value.start) >= 5*time.Second {
+		if time.Since(value.start) >= value.duration {
 			err := t.Delete("filter", "FORWARD", []string{"-i", "eth1", "-o", "eth0",
 				"-m", "mac", "--mac-source", mac, "-j", "ACCEPT"}...)
 

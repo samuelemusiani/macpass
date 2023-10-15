@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -9,6 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
+
+	"internal/comunication"
 
 	"github.com/go-ldap/ldap"
 	"github.com/spf13/viper"
@@ -25,22 +29,14 @@ var socketPath string = ""
 func main() {
 	setConfig()
 	user, _ := ldapAuth()
-	macAdd, _ := macRegistration()
+	macAdd, _ := inputMac()
+	time, _ := timeRegistered()
 
-	fmt.Println(macAdd + "\t" + user)
+	fmt.Print(macAdd + "\t" + user + "\t")
+	fmt.Println(time)
 
-	// Connect to macpassd socket
-	conn, err := net.Dial("unix", "/tmp/macpass.sock")
-	if err != nil {
-		log.Fatal(err)
-	}
+	send(comunication.Request{User: user, Mac: macAdd, Duration: time})
 
-	_, err = conn.Write([]byte(macAdd + " " + user + "\n"))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	conn.Close()
 }
 
 func ldapAuth() (string, error) {
@@ -86,7 +82,7 @@ func credentials() (string, string, error) {
 	return strings.TrimSpace(username), strings.TrimSpace(password), nil
 }
 
-func macRegistration() (string, error) {
+func inputMac() (string, error) {
 	reader := bufio.NewReader(os.Stdin)
 
 	fmt.Print("Enter a MAC address: ")
@@ -133,4 +129,41 @@ func setConfig() {
 	bindPassword = viper.GetString("bindPassword")
 	userDNType = viper.GetString("userDNType")
 	socketPath = viper.GetString("socketPath")
+}
+
+func timeRegistered() (time.Duration, error) {
+	fmt.Print("Enter the duration for the connection in hours (MAX 4): ")
+	var i int
+	_, err := fmt.Scanf("%d", &i)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if i > 4 {
+		i = 4
+	} else if i <= 0 {
+		i = 1
+	}
+
+	return time.Duration(i) * time.Hour, nil
+}
+
+func send(r comunication.Request) {
+	// Connect to macpassd socket
+	conn, err := net.Dial("unix", "/tmp/macpass.sock")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	jsonData, err := json.Marshal(r)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, err = conn.Write(jsonData)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	conn.Close()
 }
