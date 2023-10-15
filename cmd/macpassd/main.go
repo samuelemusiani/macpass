@@ -17,9 +17,17 @@ import (
 )
 
 var socketPath string
+var entriesLogger *log.Logger
 
 func main() {
 	parseConfig()
+
+	f, err := os.OpenFile("/var/log/macpassd-entries.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0660)
+	if err != nil {
+		log.Fatal(err)
+	}
+	entriesLogger = log.New(f, "", 3)
+
 	startDaemon()
 }
 
@@ -64,6 +72,8 @@ func startDaemon() {
 }
 
 func initIptables() *iptables.IPTables {
+	fmt.Println("Initializing iptables...")
+
 	ip4t, err := iptables.NewWithProtocol(iptables.ProtocolIPv4)
 	if err != nil {
 		log.Println(err)
@@ -90,6 +100,8 @@ func initIptables() *iptables.IPTables {
 }
 
 func initComunication() net.Listener {
+	fmt.Println("Initializing comunications with macpass...")
+
 	// Create a socket for comunication between macpass and macpassd
 	socket, err := net.Listen("unix", socketPath)
 	if err != nil {
@@ -116,6 +128,8 @@ func initComunication() net.Listener {
 
 func handleComunication(currentEntries *safeMap, ip4t *iptables.IPTables,
 	socket net.Listener) {
+	fmt.Println("Listening for new comunication on socket " +
+		socket.Addr().String())
 	for {
 		conn, err := socket.Accept()
 		if err != nil {
@@ -158,15 +172,14 @@ func allowNewEntry(e comunication.Request, t *iptables.IPTables) {
 		"-m", "mac", "--mac-source", e.Mac, "-j", "ACCEPT"}...)
 
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+	} else {
+		entriesLogger.Println("ADDED: ", e)
 	}
 }
 
 func deleteOldEntries(entries *safeMap, t *iptables.IPTables) {
 	for mac, value := range entries.v {
-
-		log.Println("Checking: ", mac)
-		log.Println("Time: ", time.Since(value.start))
 
 		if time.Since(value.start) >= value.duration {
 			err := t.Delete("filter", "FORWARD", []string{"-i", "eth1", "-o", "eth0",
@@ -179,6 +192,7 @@ func deleteOldEntries(entries *safeMap, t *iptables.IPTables) {
 				entries.mu.Lock()
 				delete(entries.v, mac)
 				entries.mu.Unlock()
+				entriesLogger.Println("REMOVED: ", macRegistration{mac, value})
 			}
 		}
 	}
