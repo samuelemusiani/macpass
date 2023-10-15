@@ -38,6 +38,8 @@ type macRegistration struct {
 	reg registration
 }
 
+// A safe map is a map that have a Mutex condition in order to support
+// concurrency
 type safeMap struct {
 	mu sync.Mutex
 	v  map[string]registration
@@ -45,23 +47,54 @@ type safeMap struct {
 
 func startDaemon() {
 	// Hashmap were al the entries that are currently in use are stored
-	// currentEntries := make(map[string]registration)
 	currentEntries := safeMap{v: make(map[string]registration)}
 
+	ip4t := initIptables()
+
+	socket := initComunication()
+
+	go handleComunication(&currentEntries, ip4t, socket)
+
+	for {
+		// checkIfStilConnected() TODO
+		deleteOldEntries(&currentEntries, ip4t)
+
+		time.Sleep(1 * time.Second)
+	}
+}
+
+func initIptables() *iptables.IPTables {
 	ip4t, err := iptables.NewWithProtocol(iptables.ProtocolIPv4)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		os.Exit(1)
 	}
+
 	// We need to clear the iptable table in order to avoid previus entries
-	ip4t.ClearAll()
+	err = ip4t.ClearAll()
+	if err != nil {
+		log.Println(err)
+	}
 
 	// The default rule of the firewall is deny all connection
-	denyAllMACs(ip4t)
+	// Insert is used in case the iptables is not flush and there are still
+	// entries that could compromise the security of the program
+	err = ip4t.Insert("filter", "FORWARD", 1, []string{"-i", "eth1", "-o", "eth0",
+		"-j", "DROP"}...)
+	if err != nil {
+		log.Println(err)
+		os.Exit(3)
+	}
 
+	return ip4t
+}
+
+func initComunication() net.Listener {
 	// Create a socket for comunication between macpass and macpassd
 	socket, err := net.Listen("unix", socketPath)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		os.Exit(2)
 	}
 
 	// For now everyone can write to the socket
@@ -75,63 +108,49 @@ func startDaemon() {
 	go func() {
 		<-closeChannel
 		os.Remove(socketPath)
-		os.Exit(1)
+		os.Exit(0)
 	}()
 
-	// Accept connection and read from the socket
-	go func(currentEntries *safeMap) {
-		for {
-			conn, err := socket.Accept()
-			if err != nil {
-				log.Fatal(err)
-			}
+	return socket
+}
 
-			buff := make([]byte, 4096)
-			n, err := conn.Read(buff)
-			// if err != nil {
-			// 	log.Fatal(err)
-			// }
-
-			// Do i still need this?
-			if err != nil {
-				if err == io.EOF {
-					fmt.Println("Read EOF")
-					conn.Close()
-					continue
-				}
-
-				log.Fatal(err)
-			}
-			var newEntry comunication.Request
-			if err := json.Unmarshal(buff[:n], &newEntry); err != nil {
-				log.Fatal(err)
-			}
-
-			// Check if the entry is really new
-			currentEntries.mu.Lock()
-			if _, present := currentEntries.v[newEntry.Mac]; !present {
-				allowNewEntry(newEntry, ip4t)
-				addNewEntryToMap(currentEntries, newEntry)
-			}
-			currentEntries.mu.Unlock()
-		}
-	}(&currentEntries)
-
+func handleComunication(currentEntries *safeMap, ip4t *iptables.IPTables,
+	socket net.Listener) {
 	for {
-		// checkIfStilConnected
-		deleteOldEntries(&currentEntries, ip4t)
+		conn, err := socket.Accept()
+		if err != nil {
+			log.Fatal(err)
+		}
 
-		time.Sleep(1 * time.Second)
+		buff := make([]byte, 4096)
+		n, err := conn.Read(buff)
+
+		if err != nil {
+			if err == io.EOF {
+				fmt.Println("Read EOF")
+				conn.Close()
+				continue
+			}
+
+			log.Fatal(err)
+		}
+		var newEntry comunication.Request
+		if err := json.Unmarshal(buff[:n], &newEntry); err != nil {
+			log.Fatal(err)
+		}
+
+		// Check if the entry is really new
+		if _, present := currentEntries.v[newEntry.Mac]; !present {
+			allowNewEntry(newEntry, ip4t)
+			addNewEntryToMap(currentEntries, newEntry)
+		}
 	}
 }
 
 func addNewEntryToMap(m *safeMap, n comunication.Request) {
+	m.mu.Lock()
 	m.v[n.Mac] = registration{user: n.User, start: time.Now(), duration: n.Duration}
-}
-
-func denyAllMACs(t *iptables.IPTables) {
-	t.Append("filter", "FORWARD", []string{"-i", "eth1", "-o", "eth0",
-		"-j", "DROP"}...)
+	m.mu.Unlock()
 }
 
 func allowNewEntry(e comunication.Request, t *iptables.IPTables) {
@@ -144,21 +163,23 @@ func allowNewEntry(e comunication.Request, t *iptables.IPTables) {
 }
 
 func deleteOldEntries(entries *safeMap, t *iptables.IPTables) {
-	entries.mu.Lock()
 	for mac, value := range entries.v {
 
-		fmt.Println("Checking: ", mac)
-		fmt.Println("Time: ", time.Since(value.start))
+		log.Println("Checking: ", mac)
+		log.Println("Time: ", time.Since(value.start))
 
 		if time.Since(value.start) >= value.duration {
 			err := t.Delete("filter", "FORWARD", []string{"-i", "eth1", "-o", "eth0",
 				"-m", "mac", "--mac-source", mac, "-j", "ACCEPT"}...)
 
 			if err != nil {
-				log.Fatal(err)
+				log.Println(err)
+			} else {
+				// Delete entry on table only if deleted from iptables
+				entries.mu.Lock()
+				delete(entries.v, mac)
+				entries.mu.Unlock()
 			}
-			delete(entries.v, mac)
 		}
 	}
-	entries.mu.Unlock()
 }
