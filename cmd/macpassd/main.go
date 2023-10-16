@@ -9,20 +9,23 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"sync"
 	"syscall"
 	"time"
 
 	"github.com/coreos/go-iptables/iptables"
+	"github.com/spf13/viper"
 )
 
 var socketPath string
+var loggerPath string
 var entriesLogger *log.Logger
 
 func main() {
 	parseConfig()
 
-	f, err := os.OpenFile("/var/log/macpassd-entries.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0660)
+	f, err := os.OpenFile(loggerPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0660)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -32,7 +35,32 @@ func main() {
 }
 
 func parseConfig() {
-	socketPath = "/tmp/macpass.sock" // very ugly
+	fmt.Println("Reading config file...")
+	viper.SetConfigName("config")
+	viper.SetConfigType("toml")
+
+	ex, err := os.Executable()
+	if err != nil {
+		log.Fatal(err)
+	}
+	exPath := filepath.Dir(ex)
+	viper.AddConfigPath(exPath) // Config in the same directory
+	viper.AddConfigPath("/etc/macpassd")
+
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			log.Println("Config file not found")
+			log.Fatal(err)
+		} else {
+			log.Println("Config file was found but another error was produced")
+			log.Fatal(err)
+		}
+	}
+
+	socketPath = viper.GetString("socketPath")
+	loggerPath = viper.GetString("loggerPath")
+
+	fmt.Println("Config parsed successfully")
 }
 
 type registration struct {

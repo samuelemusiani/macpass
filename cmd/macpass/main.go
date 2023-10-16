@@ -132,14 +132,14 @@ func setConfig() {
 		}
 	}
 
-	log.Println("Config file found and successfully parsed")
-
 	ldapUri = viper.GetString("ldapUri")
 	baseDN = viper.GetString("baseDN")
 	bindAdmin = viper.GetString("bindAdmin")
 	bindPassword = viper.GetString("bindPassword")
 	userDNType = viper.GetString("userDNType")
 	socketPath = viper.GetString("socketPath")
+
+	fmt.Println("Config parsed successfully")
 }
 
 func timeRegistered() time.Duration {
