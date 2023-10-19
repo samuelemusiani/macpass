@@ -9,7 +9,9 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"os/user"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -19,6 +21,7 @@ import (
 )
 
 var socketPath string
+var socketUser string
 var loggerPath string
 var entriesLogger *log.Logger
 
@@ -58,6 +61,7 @@ func parseConfig() {
 	}
 
 	socketPath = viper.GetString("socketPath")
+	socketUser = viper.GetString("socketUser")
 	loggerPath = viper.GetString("loggerPath")
 
 	fmt.Println("Config parsed successfully")
@@ -137,8 +141,19 @@ func initComunication() net.Listener {
 		os.Exit(2)
 	}
 
-	// For now everyone can write to the socket
-	if err := os.Chmod(socketPath, 0777); err != nil {
+	// Get user owner group
+	group, err := user.Lookup(socketUser)
+	if err != nil {
+		log.Fatal(err)
+	}
+	uid, _ := strconv.Atoi(group.Uid)
+	gid, _ := strconv.Atoi(group.Gid)
+
+	if err := os.Chown(socketPath, uid, gid); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := os.Chmod(socketPath, 0660); err != nil {
 		log.Fatal(err)
 	}
 

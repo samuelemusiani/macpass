@@ -1,2 +1,3 @@
 socketPath = "/tmp/macpass.sock"
+socketUser = "user"
 loggerPath = "/var/log/macpassd-entries.log"
