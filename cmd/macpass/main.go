@@ -161,7 +161,7 @@ func timeRegistered() time.Duration {
 
 func send(r comunication.Request) {
 	// Connect to macpassd socket
-	conn, err := net.Dial("unix", "/tmp/macpass.sock")
+	conn, err := net.Dial("unix", socketPath)
 	if err != nil {
 		log.Fatal(err)
 	}
