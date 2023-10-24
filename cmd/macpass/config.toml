@@ -4,3 +4,4 @@ bindAdmin = "cn=read-only-admin,dc=example,dc=com"
 bindPassword = "password"
 userDNType = "uid"
 socketPath = "/tmp/macpass.sock"
+maxConnectionTime = 8

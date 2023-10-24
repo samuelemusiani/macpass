@@ -25,6 +25,7 @@ var bindAdmin string = ""
 var bindPassword string = ""
 var userDNType string = ""
 var socketPath string = ""
+var maxTime int
 
 func main() {
 	setConfig()
@@ -138,20 +139,21 @@ func setConfig() {
 	bindPassword = viper.GetString("bindPassword")
 	userDNType = viper.GetString("userDNType")
 	socketPath = viper.GetString("socketPath")
+	maxTime = viper.GetInt("maxConnectionTime")
 
 	fmt.Println("Config parsed successfully")
 }
 
 func timeRegistered() time.Duration {
-	fmt.Print("Enter the duration for the connection in hours (MAX 4): ")
+	fmt.Printf("Enter the duration for the connection in hours (MAX %d): ", maxTime)
 	var i int
 	_, err := fmt.Scanf("%d", &i)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if i > 4 {
-		i = 4
+	if i > maxTime {
+		i = maxTime
 	} else if i <= 0 {
 		i = 1
 	}
