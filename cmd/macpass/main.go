@@ -15,6 +15,7 @@ import (
 	"internal/comunication"
 
 	"github.com/go-ldap/ldap"
+	"github.com/musianisamuele/macpass/pkg/macparse"
 	"github.com/spf13/viper"
 	"golang.org/x/term"
 )
@@ -37,7 +38,6 @@ func main() {
 	fmt.Println(time)
 
 	send(comunication.Request{User: user, Mac: macAdd, Duration: time})
-
 }
 
 func ldapAuth() string {
@@ -95,6 +95,11 @@ func inputMac() string {
 	macAdd = strings.TrimSpace(macAdd)
 
 	if _, err := net.ParseMAC(macAdd); err != nil {
+		log.Fatal(err)
+	}
+
+	macAdd, err = macparse.ParseMac(macAdd, "linux")
+	if err != nil {
 		log.Fatal(err)
 	}
 
