@@ -10,6 +10,9 @@ import (
 
 	"github.com/musianisamuele/macpass/cmd/macpass/config"
 	"github.com/musianisamuele/macpass/cmd/macpass/input"
+
+	krbclient "github.com/jcmturner/gokrb5/v8/client"
+	krbconfig "github.com/jcmturner/gokrb5/v8/config"
 )
 
 func main() {
@@ -26,15 +29,31 @@ func main() {
 }
 
 func login() string {
-	// user, passwd := input.Credential()
-	// Should check user and passwd
-	return ""
+	const krb5Conf = `[libdefaults]
+  dns_lookup_realm = true
+  dns_lookup_kdc = true
+  `
+	krbconf, err := krbconfig.NewFromString(krb5Conf)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	user, passwd := input.Credential()
+
+	cl := krbclient.NewWithPassword(user, config.Get().Kerberos.Realm, passwd,
+		krbconf, krbclient.DisablePAFXFAST(config.Get().Kerberos.DisablePAFXFAST))
+
+	if err := cl.Login(); err != nil {
+		log.Fatal(err)
+	}
+
+	// If login is succesful we return the user to bind the MAC address
+	return user
 }
 
 func send(r comunication.Request) {
-	conf := config.Get()
 	// Connect to macpassd socket
-	conn, err := net.Dial("unix", conf.SocketPath)
+	conn, err := net.Dial("unix", config.Get().SocketPath)
 	if err != nil {
 		log.Fatal(err)
 	}
