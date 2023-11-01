@@ -25,6 +25,8 @@ func Credential() (string, string) {
 		log.Fatal(err)
 	}
 
+	username = strings.TrimSpace(username)
+
 	// Check if the email is valid
 	_, err = mail.ParseAddress(username)
 	if err != nil {
