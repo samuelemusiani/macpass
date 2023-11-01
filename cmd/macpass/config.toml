@@ -1,7 +1,0 @@
-ldapUri = "ldap://ldap.forumsys.com:389" #Server to test
-baseDN = "dc=example,dc=com"
-bindAdmin = "cn=read-only-admin,dc=example,dc=com"
-bindPassword = "password"
-userDNType = "uid"
-socketPath = "/tmp/macpass.sock"
-maxConnectionTime = 8

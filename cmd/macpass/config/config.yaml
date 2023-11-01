@@ -1,0 +1,7 @@
+kerberos:
+  realm: ATHENA.MIT.EDU
+  disablePAFXFAST: true
+
+socketPath: /tmp/macpass.sock
+  
+maxConnectionTime: 8
