@@ -41,7 +41,7 @@ func login() string {
 
 	user, passwd := input.Credential()
 
-	cl := krbclient.NewWithPassword(user, strings.Split(user, "@")[0]+
+	cl := krbclient.NewWithPassword(strings.Split(user, "@")[0],
 		config.Get().Kerberos.Realm, passwd, krbconf,
 		krbclient.DisablePAFXFAST(config.Get().Kerberos.DisablePAFXFAST))
 
