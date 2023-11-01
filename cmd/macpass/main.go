@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strings"
 
 	"internal/comunication"
 
@@ -40,8 +41,9 @@ func login() string {
 
 	user, passwd := input.Credential()
 
-	cl := krbclient.NewWithPassword(user, config.Get().Kerberos.Realm, passwd,
-		krbconf, krbclient.DisablePAFXFAST(config.Get().Kerberos.DisablePAFXFAST))
+	cl := krbclient.NewWithPassword(user, strings.Split(user, "@")[0]+
+		config.Get().Kerberos.Realm, passwd, krbconf,
+		krbclient.DisablePAFXFAST(config.Get().Kerberos.DisablePAFXFAST))
 
 	if err := cl.Login(); err != nil {
 		log.Fatal(err)

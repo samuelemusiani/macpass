@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/mail"
 	"os"
 	"strings"
 	"syscall"
@@ -24,6 +25,12 @@ func Credential() (string, string) {
 		log.Fatal(err)
 	}
 
+	// Check if the email is valid
+	_, err = mail.ParseAddress(username)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	fmt.Print("Enter Password: ")
 	bytePassword, err := term.ReadPassword(int(syscall.Stdin))
 	if err != nil {
@@ -32,7 +39,7 @@ func Credential() (string, string) {
 	fmt.Println()
 
 	password := string(bytePassword)
-	return strings.TrimSpace(username), strings.TrimSpace(password)
+	return username, strings.TrimSpace(password)
 }
 
 func Mac() string {
