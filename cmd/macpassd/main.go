@@ -22,7 +22,13 @@ import (
 var entriesLogger *log.Logger
 
 func main() {
-	config.ParseConfig("/etc/macpassd/config.yaml") //tmp
+	if len(os.Args) <= 1 {
+		log.Fatal("Please provide a config path")
+	} else if len(os.Args) > 2 {
+		log.Fatal("Too many arguments provided")
+	}
+
+	config.ParseConfig(os.Args[1]) //tmp
 
 	f, err := os.OpenFile(config.Get().LoggetPath,
 		os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0660)
