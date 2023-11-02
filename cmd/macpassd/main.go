@@ -10,61 +10,28 @@ import (
 	"os"
 	"os/signal"
 	"os/user"
-	"path/filepath"
 	"strconv"
 	"sync"
 	"syscall"
 	"time"
 
 	"github.com/coreos/go-iptables/iptables"
-	"github.com/spf13/viper"
+	"github.com/musianisamuele/macpass/cmd/macpassd/config"
 )
 
-var socketPath string
-var socketUser string
-var loggerPath string
 var entriesLogger *log.Logger
 
 func main() {
-	parseConfig()
+	config.ParseConfig("/etc/macpassd/config.yaml") //tmp
 
-	f, err := os.OpenFile(loggerPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0660)
+	f, err := os.OpenFile(config.Get().LoggetPath,
+		os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0660)
 	if err != nil {
 		log.Fatal(err)
 	}
 	entriesLogger = log.New(f, "", 3)
 
 	startDaemon()
-}
-
-func parseConfig() {
-	fmt.Println("Reading config file...")
-	viper.SetConfigName("config")
-	viper.SetConfigType("toml")
-
-	ex, err := os.Executable()
-	if err != nil {
-		log.Fatal(err)
-	}
-	exPath := filepath.Dir(ex)
-	viper.AddConfigPath(exPath) // Config in the same directory
-	viper.AddConfigPath("/etc/macpassd")
-
-	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			log.Println("Config file not found")
-			log.Fatal(err)
-		} else {
-			log.Println("Config file was found but another error was produced")
-			log.Fatal(err)
-		}
-	}
-
-	socketPath = viper.GetString("socketPath")
-	socketUser = viper.GetString("socketUser")
-	loggerPath = viper.GetString("loggerPath")
-
-	fmt.Println("Config parsed successfully")
 }
 
 type registration struct {
@@ -133,27 +100,28 @@ func initIptables() *iptables.IPTables {
 
 func initComunication() net.Listener {
 	fmt.Println("Initializing comunications with macpass...")
+	conf := config.Get()
 
 	// Create a socket for comunication between macpass and macpassd
-	socket, err := net.Listen("unix", socketPath)
+	socket, err := net.Listen("unix", conf.Socket.Path)
 	if err != nil {
 		log.Println(err)
 		os.Exit(2)
 	}
 
 	// Get user owner group
-	group, err := user.Lookup(socketUser)
+	group, err := user.Lookup(conf.Socket.User)
 	if err != nil {
 		log.Fatal(err)
 	}
 	uid, _ := strconv.Atoi(group.Uid)
 	gid, _ := strconv.Atoi(group.Gid)
 
-	if err := os.Chown(socketPath, uid, gid); err != nil {
+	if err := os.Chown(conf.Socket.Path, uid, gid); err != nil {
 		log.Fatal(err)
 	}
 
-	if err := os.Chmod(socketPath, 0660); err != nil {
+	if err := os.Chmod(conf.LoggetPath, 0660); err != nil {
 		log.Fatal(err)
 	}
 
@@ -162,7 +130,7 @@ func initComunication() net.Listener {
 	signal.Notify(closeChannel, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-closeChannel
-		os.Remove(socketPath)
+		os.Remove(conf.LoggetPath)
 		os.Exit(0)
 	}()
 
