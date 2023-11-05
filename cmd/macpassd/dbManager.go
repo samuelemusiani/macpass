@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -22,7 +23,7 @@ func regInstanceToMacRegistration(reg registrationInstance) macRegistration {
 	return macRegistration{mac: reg.mac, reg: registration{reg.user, reg.start, reg.end.Sub(reg.start)}}
 }
 
-func _readRegInstances(row *sql.Rows) []registrationInstance {
+func readRegInstances(row *sql.Rows) []registrationInstance {
 	var macs []registrationInstance
 	var current registrationInstance
 	for row.Next() {
@@ -38,7 +39,7 @@ func getActive(con *sql.DB) []registrationInstance {
 	if err != nil {
 		log.Fatal(err)
 	}
-	return _readRegInstances(row)
+	return readRegInstances(row)
 }
 
 func getOutdated(con *sql.DB) []registrationInstance {
@@ -47,7 +48,7 @@ func getOutdated(con *sql.DB) []registrationInstance {
 	if err != nil {
 		log.Fatal(err)
 	}
-	return _readRegInstances(row)
+	return readRegInstances(row)
 }
 
 func setOutdated(con *sql.DB, macs []registrationInstance) {
@@ -55,6 +56,7 @@ func setOutdated(con *sql.DB, macs []registrationInstance) {
 		id := macs[i].id
 		updateOutdated := `update Log set isDown = true where id = ?`
 		con.Exec(updateOutdated, id)
+		macs[i].isDown = true
 	}
 }
 
@@ -69,15 +71,17 @@ func insertMacRegistration(db *sql.DB, macReg macRegistration) {
 
 }
 
-func connectDB(sqlfile string) *sql.DB {
+func connectDB(sqlFile string) *sql.DB {
 	log.Println("Connecting to DB...")
 	const createLogTable = `create table if not exists 
 	Log(id integer primary key autoincrement,User varchar(255), MAC varchar(17),startTime datetime, endTime datetime, isDown bool)
 	`
-	if _, err := os.Stat(sqlfile); os.IsNotExist(err) {
-		os.Create(sqlfile)
+	if !strings.HasPrefix(sqlFile, ":") {
+		if _, err := os.Stat(sqlFile); os.IsNotExist(err) {
+			os.Create(sqlFile)
+		}
 	}
-	db, err := sql.Open("sqlite3", sqlfile)
+	db, err := sql.Open("sqlite3", sqlFile)
 
 	if err != nil {
 		log.Fatal(err)
