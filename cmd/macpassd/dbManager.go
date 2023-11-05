@@ -41,19 +41,21 @@ func getActive(con *sql.DB) []registrationInstance {
 	return _readRegInstances(row)
 }
 
-func setOutdated(con *sql.DB) []registrationInstance {
+func getOutdated(con *sql.DB) []registrationInstance {
 	selectOutdated := `select * from Log where ? > endTime and isDown = false`
 	row, err := con.Query(selectOutdated, time.Now())
 	if err != nil {
 		log.Fatal(err)
 	}
-	macs := _readRegInstances(row)
+	return _readRegInstances(row)
+}
+
+func setOutdated(con *sql.DB, macs []registrationInstance) {
 	for i := range macs {
 		id := macs[i].id
 		updateOutdated := `update Log set isDown = true where id = ?`
 		con.Exec(updateOutdated, id)
 	}
-	return macs
 }
 
 func insertMacRegistration(db *sql.DB, macReg macRegistration) {
