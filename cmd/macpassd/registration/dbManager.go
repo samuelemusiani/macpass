@@ -1,4 +1,4 @@
-package main
+package registration
 
 import (
 	"database/sql"
@@ -10,30 +10,17 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-type registrationInstance struct {
-	id     int
-	user   string
-	mac    string
-	start  time.Time
-	end    time.Time
-	isDown bool
-}
-
-func regInstanceToMacRegistration(reg registrationInstance) macRegistration {
-	return macRegistration{mac: reg.mac, reg: registration{reg.user, reg.start, reg.end.Sub(reg.start)}}
-}
-
-func readRegInstances(row *sql.Rows) []registrationInstance {
-	var macs []registrationInstance
-	var current registrationInstance
+func readRegInstances(row *sql.Rows) []Registration {
+	var macs []Registration
+	var current Registration
 	for row.Next() {
-		row.Scan(&current.id, &current.user, &current.mac, &current.start, &current.end, &current.isDown)
+		row.Scan(&current.Id, &current.User, &current.Mac, &current.Start, &current.End, &current.IsDown)
 		macs = append(macs, current)
 	}
 	return macs
 }
 
-func getActive(con *sql.DB) []registrationInstance {
+func getActive(con *sql.DB) []Registration {
 	selectOutdated := `select * from Log where ? < endTime and isDown = false`
 	row, err := con.Query(selectOutdated, time.Now())
 	if err != nil {
@@ -42,7 +29,7 @@ func getActive(con *sql.DB) []registrationInstance {
 	return readRegInstances(row)
 }
 
-func getOutdated(con *sql.DB) []registrationInstance {
+func getOutdated(con *sql.DB) []Registration {
 	selectOutdated := `select * from Log where ? > endTime and isDown = false`
 	row, err := con.Query(selectOutdated, time.Now())
 	if err != nil {
@@ -51,20 +38,18 @@ func getOutdated(con *sql.DB) []registrationInstance {
 	return readRegInstances(row)
 }
 
-func setOutdated(con *sql.DB, macs []registrationInstance) {
+func setOutdated(con *sql.DB, macs []Registration) {
 	for i := range macs {
-		id := macs[i].id
+		id := macs[i].Id
 		updateOutdated := `update Log set isDown = true where id = ?`
 		con.Exec(updateOutdated, id)
-		macs[i].isDown = true
+		macs[i].IsDown = true
 	}
 }
 
-func insertMacRegistration(db *sql.DB, macReg macRegistration) {
-	var startCopy = macReg.reg.start
-	var endTime = startCopy.Add(macReg.reg.duration)
+func insertRegistration(db *sql.DB, reg Registration) {
 	const insertLog = `insert into Log(User, MAC, startTime, endTime, isDown) values(?, ?, ?,? , false)`
-	_, err := db.Exec(insertLog, macReg.reg.user, macReg.mac, macReg.reg.start, endTime)
+	_, err := db.Exec(insertLog, reg.User, reg.Mac, reg.Start, reg.End)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -72,7 +57,7 @@ func insertMacRegistration(db *sql.DB, macReg macRegistration) {
 }
 
 func connectDB(sqlFile string) *sql.DB {
-	log.Println("Connecting to DB...")
+	log.Println("Connecting to DB")
 	const createLogTable = `create table if not exists 
 	Log(id integer primary key autoincrement,User varchar(255), MAC varchar(17),startTime datetime, endTime datetime, isDown bool)
 	`
@@ -91,6 +76,6 @@ func connectDB(sqlFile string) *sql.DB {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println("Connected to DB...")
+	log.Println("Connected to DB")
 	return db
 }

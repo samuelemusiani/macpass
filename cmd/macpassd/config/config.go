@@ -13,7 +13,7 @@ type Socket struct {
 
 type Config struct {
 	Socket     Socket `json:"socket"`
-	LoggetPath string `json:"loggerPath"`
+	LoggerPath string `json:"loggerPath"`
 }
 
 var config Config
