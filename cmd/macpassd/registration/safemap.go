@@ -11,6 +11,10 @@ type safeMap struct {
 	v  map[string]Registration
 }
 
+func newSafeMap() *safeMap {
+	return &safeMap{v: make(map[string]Registration)}
+}
+
 func (m *safeMap) add(r Registration) {
 	m.mu.Lock()
 	m.v[r.Mac] = r

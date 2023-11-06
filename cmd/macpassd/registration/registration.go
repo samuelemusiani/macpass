@@ -20,9 +20,11 @@ type Registration struct {
 	IsDown bool
 }
 
-// The map is used to store the current Registration that are active.
-var current safeMap
-var ids uint64 = 0
+var (
+	// The map is used to store the current Registration that are active.
+	current *safeMap = newSafeMap()
+	ids     uint64   = 0
+)
 
 func Add(newRequest comunication.Request) (r Registration) {
 	r = Registration{Id: ids, User: newRequest.User, Mac: newRequest.Mac,
