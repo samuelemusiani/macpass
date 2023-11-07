@@ -11,9 +11,15 @@ type Socket struct {
 	User string `json:"user"`
 }
 
+type Network struct {
+	Ip   string `json:"ip"`
+	Mask string `json:"subnetmask"`
+}
+
 type Config struct {
-	Socket     Socket `json:"socket"`
-	LoggerPath string `json:"loggerPath"`
+	Socket     Socket  `json:"socket"`
+	Network    Network `json:"network"`
+	LoggerPath string  `json:"loggerPath"`
 }
 
 var config Config

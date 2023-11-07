@@ -42,6 +42,7 @@ func startDaemon() {
 	for {
 		// checkIfStilConnected() TODO
 		deleteOldEntries()
+		scanNetwork()
 
 		time.Sleep(10 * time.Second)
 	}
