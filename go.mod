@@ -5,6 +5,7 @@ go 1.21.3
 require (
 	github.com/coreos/go-iptables v0.7.0
 	github.com/ghodss/yaml v1.0.0
+	github.com/j-keck/arping v1.0.3
 	github.com/jcmturner/gokrb5/v8 v8.4.4
 	github.com/spf13/viper v1.17.0
 	golang.org/x/term v0.13.0
