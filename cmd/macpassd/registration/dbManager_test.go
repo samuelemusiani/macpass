@@ -29,22 +29,25 @@ func TestSetOutdated(t *testing.T) {
 	defer db.Close()
 	hour, _ := time.ParseDuration("1h")
 	ms, _ := time.ParseDuration("1ms")
-	insertRegistration(db, Registration{100, "user1", "08:7d:bb:7a:cb:d0",
-		time.Now(), time.Now().Add(hour), false})
-	insertRegistration(db, Registration{101, "user2", "80:57:61:7e:d1:dd",
-		time.Now(), time.Now().Add(hour), false})
+	insertRegistration(db, Registration{Id: 100, User: "user0",
+		Mac: "08:7d:bb:7a:cb:d0", Start: time.Now(), End: time.Now().Add(hour),
+		IsDown: false})
+	insertRegistration(db, Registration{Id: 101, User: "user1",
+		Mac: "80:57:61:7e:d1:dd", Start: time.Now(), End: time.Now().Add(hour),
+		IsDown: false})
 
-	user3 := Registration{102, "user3", "fb:65:ee:13:76:af",
-		time.Now(), time.Now().Add(ms), false}
+	user2 := Registration{Id: 102, User: "user2",
+		Mac: "fb:65:ee:13:76:af", Start: time.Now(), End: time.Now().Add(ms),
+		IsDown: false}
 
 	time.Sleep(2 * ms)
-	insertRegistration(db, user3)
+	insertRegistration(db, user2)
 
 	macs := getOutdated(db)
 	setOutdated(db, macs)
 	assert.Equal(t, len(macs), 1)
 	user3out := macs[0]
-	checkEqualMacRegistration(t, user3, user3out)
+	checkEqualMacRegistration(t, user2, user3out)
 }
 
 func TestGetActive(t *testing.T) {
@@ -53,12 +56,16 @@ func TestGetActive(t *testing.T) {
 	hour, _ := time.ParseDuration("1h")
 	ms, _ := time.ParseDuration("1ms")
 
-	insertRegistration(db, Registration{100, "user1", "08:7d:bb:7a:cb:d0",
-		time.Now(), time.Now().Add(hour), false})
-	insertRegistration(db, Registration{101, "user2", "80:57:61:7e:d1:dd",
-		time.Now(), time.Now().Add(hour), false})
-	insertRegistration(db, Registration{102, "user3", "fb:65:ee:13:76:af",
-		time.Now(), time.Now().Add(ms), false})
+	insertRegistration(db, Registration{Id: 100, User: "user0",
+		Mac: "08:7d:bb:7a:cb:d0", Start: time.Now(), End: time.Now().Add(hour),
+		IsDown: false})
+	insertRegistration(db, Registration{Id: 101, User: "user1",
+		Mac: "80:57:61:7e:d1:dd", Start: time.Now(), End: time.Now().Add(hour),
+		IsDown: false})
+
+	insertRegistration(db, Registration{Id: 102, User: "user2",
+		Mac: "fb:65:ee:13:76:af", Start: time.Now(), End: time.Now().Add(ms),
+		IsDown: false})
 
 	time.Sleep(2 * ms)
 	macs := getActive(db)
