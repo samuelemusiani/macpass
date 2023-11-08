@@ -5,7 +5,7 @@ package registration
 
 import (
 	"internal/comunication"
-	"log"
+	"log/slog"
 	"net"
 	"time"
 )
@@ -33,7 +33,7 @@ func Add(newRequest comunication.Request) (r Registration) {
 		Start: time.Now(), End: time.Now().Add(newRequest.Duration), Ips: []net.IP{}}
 	ids++
 
-	log.Println("New registration will be added: ", r)
+	slog.With("registration", r).Debug("New registration will be added")
 
 	current.add(r)
 	// Add to db
@@ -42,13 +42,14 @@ func Add(newRequest comunication.Request) (r Registration) {
 }
 
 func Remove(r Registration) {
-	log.Println("Removing registration: ", r)
+	slog.With("registration", r).Debug("Removing registration")
 	current.remove(r.Mac)
 }
 
 func GetOldEntries() (oldEntries []Registration) {
-	// Get from map
+	slog.Debug("Getting old entries")
 
+	// Get from map
 	for _, reg := range current.v {
 		if time.Now().Sub(reg.End) >= 0 {
 			oldEntries = append(oldEntries, reg)
@@ -60,7 +61,7 @@ func GetOldEntries() (oldEntries []Registration) {
 }
 
 func AddIpToMac(ip net.IP, mac net.HardwareAddr) {
-	log.Println("Adding ip: ", ip, "to mac: ", mac)
+	slog.With("ip", ip, "mac", mac).Debug("Binding ip to mac")
 	current.addIp(mac.String(), ip)
 
 	// Add to db

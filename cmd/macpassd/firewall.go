@@ -1,7 +1,8 @@
 package main
 
 import (
-	"log"
+	"log/slog"
+	"os"
 
 	"github.com/coreos/go-iptables/iptables"
 	"github.com/musianisamuele/macpass/cmd/macpassd/registration"
@@ -10,18 +11,20 @@ import (
 var ipTable *iptables.IPTables
 
 func initIptables() {
-	log.Println("Initializing iptables")
+	slog.Info("Initializing iptables")
 
 	var err error
 	ipTable, err = iptables.NewWithProtocol(iptables.ProtocolIPv4)
 	if err != nil {
-		log.Fatal(err)
+		slog.With("error", err).Error("Failing creating iptables object")
+		os.Exit(3)
 	}
 
 	// We need to clear the iptable table in order to avoid previus entries
 	err = ipTable.ClearAll()
 	if err != nil {
-		log.Fatal(err)
+		slog.With("error", err).Error("Failing clearing iptables rules")
+		os.Exit(3)
 	}
 
 	// The default rule of the firewall is deny all connections
@@ -30,7 +33,8 @@ func initIptables() {
 	err = ipTable.Insert("filter", "FORWARD", 1, []string{"-i", "eth1", "-o", "eth0",
 		"-j", "DROP"}...)
 	if err != nil {
-		log.Fatal(err)
+		slog.With("error", err).Error("Inserting default deny rule on iptable")
+		os.Exit(3)
 	}
 }
 
@@ -39,10 +43,10 @@ func allowNewEntryOnFirewall(r registration.Registration) {
 		"-m", "mac", "--mac-source", r.Mac, "-j", "ACCEPT"}...)
 
 	if err != nil {
-		log.Println(err)
+		slog.With("error", err).Error("Inserting: ", r)
 	} else {
-		log.Println("ADDED: ", r)
-		entriesLogger.Println("ADDED: ", r)
+		slog.Info("ADDED: ", r)
+		// entriesLogger.Println("ADDED: ", r)
 	}
 }
 
@@ -51,9 +55,9 @@ func deleteEntryFromFirewall(r registration.Registration) {
 		"eth0", "-m", "mac", "--mac-source", r.Mac, "-j", "ACCEPT"}...)
 
 	if err != nil {
-		log.Println(err)
+		slog.With("error", err).Error("Removing: ", r)
 	} else {
-		log.Println("REMOVED: ", r)
-		entriesLogger.Println("REMOVED: ", r)
+		slog.Info("REMOVED: ", r)
+		// entriesLogger.Println("REMOVED: ", r)
 	}
 }

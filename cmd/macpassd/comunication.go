@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"internal/comunication"
 	"io"
-	"log"
+	"log/slog"
 	"net"
 	"os"
 	"os/signal"
@@ -18,32 +18,38 @@ import (
 var socket net.Listener
 
 func initComunication() {
-	log.Println("Initializing comunications with macpass")
+	slog.Info("Initializing comunications with macpass")
 	conf := config.Get()
 
 	// Create a socket for comunication between macpass and macpassd
-	log.Println("Creting socket in: ", conf.Socket.Path)
+	slog.Info("Creting socket in: ", conf.Socket.Path)
 	var err error
 	socket, err = net.Listen("unix", conf.Socket.Path)
 	if err != nil {
-		log.Fatal(err)
+		slog.With("socketPath", conf.Socket.Path, "error", err).
+			Error("Creating socket")
+		os.Exit(4)
 	}
 
 	// Get user owner group
 	group, err := user.Lookup(conf.Socket.User)
 	if err != nil {
-		log.Fatal(err)
+		slog.With("socketPath", conf.Socket.Path, "error", err).
+			Error("Get user and group for socket")
+		os.Exit(4)
 	}
 	uid, _ := strconv.Atoi(group.Uid)
 	gid, _ := strconv.Atoi(group.Gid)
 
 	if err := os.Chown(conf.Socket.Path, uid, gid); err != nil {
-		log.Fatal(err)
+		slog.With("socketPath", conf.Socket.Path, "error", err).
+			Error("Modify user and group permission for socket")
+		os.Exit(4)
 	}
 
-	if err := os.Chmod(conf.LoggerPath, 0660); err != nil {
-		log.Fatal(err)
-	}
+	// if err := os.Chmod(conf.LoggerPath, 0660); err != nil {
+	// 	log.Fatal(err)
+	// }
 
 	// Cleanup the sockfile when macpassd is terminated
 	closeChannel := make(chan os.Signal, 1)
@@ -56,13 +62,14 @@ func initComunication() {
 }
 
 func handleComunication() {
-	log.Println("Listening for new comunication on socket: ",
-		socket.Addr().String())
+	slog.With("socketAdd: ", socket.Addr().String()).
+		Info("Listening for new comunication on socket: ")
 
 	for {
 		conn, err := socket.Accept()
 		if err != nil {
-			log.Fatal(err)
+			slog.With("error", err).Error("Listening on socket")
+			os.Exit(4)
 		}
 
 		buff := make([]byte, 4096)
@@ -74,11 +81,11 @@ func handleComunication() {
 				continue
 			}
 
-			log.Println(err)
+			slog.With("error", err).Error("Reading socket")
 		}
 		var newEntry comunication.Request
 		if err := json.Unmarshal(buff[:n], &newEntry); err != nil {
-			log.Println(err)
+			slog.With("error", err).Error("Decoding comunication from macpass")
 		}
 
 		handleRequest(newEntry)

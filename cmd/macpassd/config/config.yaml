@@ -6,4 +6,7 @@ network:
   ip: 192.168.1.1
   subnetmask: 255.255.255.0
 
-loggerPath: "/var/log/macpassd-entries.log"
+loggerPath: "/var/log/macpassd-entries.log" # not working
+
+# The options are debug, info, warn and error
+log_level: debug

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log/slog"
 	"net"
 	"time"
 
@@ -19,6 +20,7 @@ func scanNetwork() {
 
 	r := macscan.ScanSubnet(net.IPNet{IP: ip, Mask: mask}, timeout, 50)
 
+	slog.Debug("Adding ScanSubnet responses")
 	for _, i := range r {
 		registration.AddIpToMac(i.Ip, i.Mac)
 	}
