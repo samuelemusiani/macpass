@@ -15,7 +15,7 @@ type IpMac struct {
 }
 
 func ScanSubnet(subnet net.IPNet, timeout time.Duration, threads uint8) []IpMac {
-	slog.With("subnet", subnet, "timeout", timeout, "threads", threads).Info("Scanning subnet")
+	slog.With("subnet", subnet, "timeout", timeout, "threads", threads).Debug("Scanning subnet")
 
 	if threads == 0 {
 		slog.With("thread", threads).
