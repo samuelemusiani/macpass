@@ -1,7 +1,7 @@
 package registration
 
 import (
-	"log"
+	"log/slog"
 	"net"
 	"sync"
 )
@@ -37,12 +37,12 @@ func (m *safeMap) addIp(mac string, ip net.IP) {
 
 		if !isIpPrenset(val.Ips, ip) {
 			val.Ips = append(val.Ips, ip) //Need to check for duplicates
+			slog.With("registration", val).
+				Info("The registration is been updated on the map")
 		}
 
 		current.v[mac] = val
 		current.mu.Unlock()
-
-		log.Println("The registration is been updated on the map: ", val)
 	}
 }
 

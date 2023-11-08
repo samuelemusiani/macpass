@@ -18,7 +18,7 @@ func scanNetwork() {
 	ip := net.ParseIP(conf.Network.Ip)
 	mask := net.IPMask(net.ParseIP(conf.Network.Mask).To4())
 
-	slog.With("ip", ip, "mask", mask).Info("scanNetwork")
+	slog.With("ip", ip, "mask", mask).Debug("scanNetwork")
 
 	r := macscan.ScanSubnet(net.IPNet{IP: ip, Mask: mask}, timeout, 50)
 
