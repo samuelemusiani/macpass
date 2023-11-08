@@ -19,10 +19,11 @@ type Network struct {
 }
 
 type Config struct {
-	Socket     Socket  `json:"socket"`
-	Network    Network `json:"network"`
-	LoggerPath string  `json:"loggerPath"`
-	LogLevel   string  `json:"logLevel"`
+	Socket        Socket  `json:"socket"`
+	Network       Network `json:"network"`
+	LoggerPath    string  `json:"loggerPath"`
+	LogLevel      string  `json:"logLevel"`
+	IterationTime int     `json:"iterationTime"`
 }
 
 var config Config

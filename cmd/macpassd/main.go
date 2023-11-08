@@ -63,12 +63,14 @@ func startDaemon() {
 	initComunication()
 	go handleComunication()
 
+	conf := config.Get()
+
 	for {
 		// checkIfStilConnected() TODO
 		deleteOldEntries()
 		scanNetwork()
 
-		time.Sleep(10 * time.Second)
+		time.Sleep(time.Duration(conf.IterationTime) * time.Second)
 	}
 }
 

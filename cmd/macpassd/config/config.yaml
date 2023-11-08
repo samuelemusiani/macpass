@@ -18,6 +18,10 @@ network:
   # the all subnet
   workers: 50 # min 1, max 255
 
+# How much time to wait to do the next network scan and old entries scan. In
+# seconds
+iterationTime: 10
+
 loggerPath: "/var/log/macpassd-entries.log" # not working
 
 # The options are debug, info, warn and error
