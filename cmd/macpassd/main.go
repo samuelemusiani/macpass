@@ -24,10 +24,9 @@ func main() {
 
 	config.ParseConfig(os.Args[1]) //tmp
 
-	var logLevel slog.Level
-
 	conf := config.Get()
 
+	var logLevel slog.Level
 	switch conf.LogLevel {
 	case "debug":
 		logLevel = slog.LevelDebug

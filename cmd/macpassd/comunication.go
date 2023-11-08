@@ -22,7 +22,7 @@ func initComunication() {
 	conf := config.Get()
 
 	// Create a socket for comunication between macpass and macpassd
-	slog.With("socketPath", conf.Socket.Path).Info("Creting socket")
+	slog.With("socketPath", conf.Socket.Path).Info("Creating socket")
 	var err error
 	socket, err = net.Listen("unix", conf.Socket.Path)
 	if err != nil {

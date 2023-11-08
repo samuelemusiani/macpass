@@ -9,4 +9,4 @@ network:
 loggerPath: "/var/log/macpassd-entries.log" # not working
 
 # The options are debug, info, warn and error
-log_level: debug
+logLevel: debug
