@@ -43,9 +43,9 @@ func allowNewEntryOnFirewall(r registration.Registration) {
 		"-m", "mac", "--mac-source", r.Mac, "-j", "ACCEPT"}...)
 
 	if err != nil {
-		slog.With("error", err).Error("Inserting: ", r)
+		slog.With("registration", r, "error", err).Error("Inserting registration")
 	} else {
-		slog.Info("ADDED: ", r)
+		slog.With("registration", r).Info("ADDED")
 		// entriesLogger.Println("ADDED: ", r)
 	}
 }
@@ -55,9 +55,9 @@ func deleteEntryFromFirewall(r registration.Registration) {
 		"eth0", "-m", "mac", "--mac-source", r.Mac, "-j", "ACCEPT"}...)
 
 	if err != nil {
-		slog.With("error", err).Error("Removing: ", r)
+		slog.With("registration", r, "error", err).Error("Removing registration")
 	} else {
-		slog.Info("REMOVED: ", r)
+		slog.With("registration", r).Info("REMOVED")
 		// entriesLogger.Println("REMOVED: ", r)
 	}
 }

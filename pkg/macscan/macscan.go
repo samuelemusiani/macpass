@@ -34,7 +34,7 @@ func ScanSubnet(subnet net.IPNet, timeout time.Duration, threads uint8) []IpMac 
 		bBp(tmp, uint32(ip))
 		// tmpip := make([]byte, 4)
 		// copy(tmpip, tmp) // Need to copy because it's an array
-		slog.Debug("Generated ip: ", net.IP(tmp).String())
+		slog.With("ip", net.IP(tmp).String()).Debug("Generated ip")
 		hosts <- tmp //Segmentation fault? Where does the scope of tmp ends?
 	}
 	close(hosts)
@@ -68,7 +68,7 @@ func arpingHosts(hosts chan net.IP, repondingHosts chan IpMac, done chan bool, t
 		if err != nil {
 			slog.With("error", err, "host", host).Debug("Error during arping to host")
 		} else {
-			slog.With("host", host, "mac", mac).Debug("Host responded ", mac)
+			slog.With("host", host, "mac", mac).Debug("Host responded")
 			repondingHosts <- IpMac{Ip: host, Mac: mac}
 		}
 	}
