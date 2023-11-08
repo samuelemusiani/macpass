@@ -10,17 +10,16 @@ import (
 	"github.com/musianisamuele/macpass/pkg/macscan"
 )
 
-const timeout = time.Second
-const threads = 50
-
 func scanNetwork() {
 	conf := config.Get()
 	ip := net.ParseIP(conf.Network.Ip)
 	mask := net.IPMask(net.ParseIP(conf.Network.Mask).To4())
+	timeout := time.Millisecond * time.Duration(time.Duration(conf.Network.Timeout).Milliseconds())
+	workers := conf.Network.Workers
 
 	slog.With("ip", ip, "mask", mask).Debug("scanNetwork")
 
-	r := macscan.ScanSubnet(net.IPNet{IP: ip, Mask: mask}, timeout, 50)
+	r := macscan.ScanSubnet(net.IPNet{IP: ip, Mask: mask}, timeout, workers)
 
 	slog.Debug("Adding ScanSubnet responses")
 	for _, i := range r {

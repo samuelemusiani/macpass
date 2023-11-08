@@ -6,6 +6,18 @@ network:
   ip: 192.168.1.1
   subnetmask: 255.255.255.0
 
+  # How much time (in ms) to wait for a host to respond to arping
+  timeout: 1000
+
+  # Workers are go routins that checks for ips on the network. The more they are
+  # the faster the scan will be. Please note that too much workers will stop the
+  # network from working
+  #
+  # If you need to check for 255 ips (based on the subnetmask) and you use 50
+  # workers with 1s as timeout it would roughly take 255 / 50 * 1 = 5.1s to scan
+  # the all subnet
+  workers: 50 # min 1, max 255
+
 loggerPath: "/var/log/macpassd-entries.log" # not working
 
 # The options are debug, info, warn and error

@@ -17,6 +17,12 @@ type IpMac struct {
 func ScanSubnet(subnet net.IPNet, timeout time.Duration, threads uint8) []IpMac {
 	slog.With("subnet", subnet, "timeout", timeout, "threads", threads).Info("Scanning subnet")
 
+	if threads == 0 {
+		slog.With("thread", threads).
+			Error("0 Worker specified. A network scan is impossible")
+		return []IpMac{}
+	}
+
 	hosts := make(chan net.IP, 255)
 	results := make(chan IpMac, 255)
 	done := make(chan bool, threads)
