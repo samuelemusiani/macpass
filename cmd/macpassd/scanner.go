@@ -14,7 +14,7 @@ func scanNetwork() {
 	conf := config.Get()
 	ip := net.ParseIP(conf.Network.Ip)
 	mask := net.IPMask(net.ParseIP(conf.Network.Mask).To4())
-	timeout := time.Millisecond * time.Duration(time.Duration(conf.Network.Timeout).Milliseconds())
+	timeout := time.Millisecond * time.Duration(conf.Network.Timeout)
 	workers := conf.Network.Workers
 
 	slog.With("ip", ip, "mask", mask).Debug("scanNetwork")
