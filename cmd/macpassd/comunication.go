@@ -53,10 +53,11 @@ func initComunication() {
 
 	// Cleanup the sockfile when macpassd is terminated
 	closeChannel := make(chan os.Signal, 1)
-	signal.Notify(closeChannel, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(closeChannel, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-closeChannel
 		os.Remove(conf.LoggerPath)
+		os.Remove(conf.Socket.Path)
 		os.Exit(0)
 	}()
 }
