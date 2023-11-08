@@ -16,7 +16,7 @@ const threads = 50
 func scanNetwork() {
 	conf := config.Get()
 	ip := net.ParseIP(conf.Network.Ip)
-	mask := net.IPMask(net.ParseIP(conf.Network.Mask))
+	mask := net.IPMask(net.ParseIP(conf.Network.Mask).To4())
 
 	slog.With("ip", ip, "mask", mask).Info("scanNetwork")
 
