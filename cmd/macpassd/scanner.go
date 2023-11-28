@@ -9,10 +9,14 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/musianisamuele/macpass/cmd/macpassd/config"
 	"github.com/musianisamuele/macpass/cmd/macpassd/registration"
 )
 
 func scanNetwork() {
+	conf := config.Get()
+	network := net.IPNet{IP: net.ParseIP(conf.Network.Ip), Mask: net.IPMask(net.ParseIP(conf.Network.Mask))}
+
 	// get arptable
 	path := "/proc/net/arp"
 	arpTable, err := os.ReadFile(path)
@@ -41,7 +45,9 @@ func scanNetwork() {
 					slog.With("line", string(line), "err", err).
 						Error("Error parsing arp line")
 				} else if !reflect.DeepEqual(mac.String(), emptyMac.String()) {
-					registration.AddIpToMac(ip, mac)
+					if isInSubnet(ip, network) {
+						registration.AddIpToMac(ip, mac)
+					}
 				}
 			}
 			line = line[:0]
@@ -70,4 +76,8 @@ func parseArpLine(line []byte, hwPos int) (net.IP, net.HardwareAddr, error) {
 	mac, err := net.ParseMAC(string(line[hwPos : hwPos+17]))
 
 	return ip, mac, err
+}
+
+func isInSubnet(ip net.IP, network net.IPNet) bool {
+	return ip.Mask(network.Mask).Equal(net.IP(network.Mask))
 }
