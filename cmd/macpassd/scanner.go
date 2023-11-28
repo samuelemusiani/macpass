@@ -45,21 +45,22 @@ func scanNetwork() {
 					break
 				}
 				slog.With("hwPos", hwPos).Debug("Found 'HW address' start")
-			}
+				isFirstLine = false
+			} else {
 
-			ip, mac, err := parseArpLine(line, hwPos)
-			slog.With("ip", ip, "mac", mac, "err", err).Debug("Line parsed")
+				ip, mac, err := parseArpLine(line, hwPos)
+				slog.With("ip", ip, "mac", mac, "err", err).Debug("Line parsed")
 
-			if err != nil {
-				slog.With("line", string(line), "err", err).
-					Error("Error parsing arp line")
-			} else if !reflect.DeepEqual(mac.String(), emptyMac.String()) &&
-				isInSubnet(ip, network) {
-				slog.With("ip", ip, "mac", mac).Debug("Mac is not empty. Found ip in the subnet. Binding to mac")
-				registration.AddIpToMac(ip, mac)
+				if err != nil {
+					slog.With("line", string(line), "err", err).
+						Error("Error parsing arp line")
+				} else if !reflect.DeepEqual(mac.String(), emptyMac.String()) &&
+					isInSubnet(ip, network) {
+					slog.With("ip", ip, "mac", mac).Debug("Mac is not empty. Found ip in the subnet. Binding to mac")
+					registration.AddIpToMac(ip, mac)
+				}
 			}
 			line = line[:0]
-			isFirstLine = false
 		}
 	}
 }
