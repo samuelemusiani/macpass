@@ -13,7 +13,7 @@ import (
 var database *sql.DB
 
 func Connect(sqlFile string) {
-	slog.With("path", sqlFile).Info("Connecting to DB")
+	slog.With("path", sqlFile).Debug("Connecting to DB")
 
 	const createTable = `CREATE TABLE IF NOT EXISTS 
 	Inserted(User VARCHAR(255) PRIMARY KEY, mac VARCHAR(17))
@@ -33,7 +33,7 @@ func Connect(sqlFile string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	slog.Info("Connected to DB")
+	slog.Debug("Connected to DB")
 	database = db
 }
 
