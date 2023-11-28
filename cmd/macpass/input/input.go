@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/mail"
 	"os"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -80,31 +81,41 @@ func Mac(user string) string {
 		}
 	}
 
+	var macAdd string
+	var err error
+
+enterMac:
+
 	fmt.Print("Enter a MAC address: ")
-	macAdd, err := reader.ReadString('\n')
+	macAdd, err = reader.ReadString('\n')
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		goto enterMac
 	}
 
 	macAdd = strings.TrimSpace(macAdd)
 
 	if _, err := net.ParseMAC(macAdd); err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		goto enterMac
 	}
 
 	macAdd, err = macparse.ParseMac(macAdd, "linux")
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		goto enterMac
 	}
 
 	brdAdd := "ff:ff:ff:ff:ff:ff"
 	if macAdd == brdAdd {
-		log.Fatal("The brodcast address it is NOT a valide MAC address")
+		log.Println("The brodcast address it is NOT a valide MAC address")
+		goto enterMac
 	}
 
 	nullAdd := "00:00:00:00:00:00"
 	if macAdd == nullAdd {
-		log.Fatal("The null address it is NOT a valide MAC address")
+		log.Println("The null address it is NOT a valide MAC address")
+		goto enterMac
 	}
 
 	// The mac address is valid
@@ -113,12 +124,21 @@ func Mac(user string) string {
 
 func RegistrationTime() time.Duration {
 	conf := config.Get()
+	reader := bufio.NewReader(os.Stdin)
+	var i int
+
+readAgain:
 	fmt.Printf("Enter the duration for the connection in hours (MAX %d): ",
 		conf.MaxConnectionTime)
-	var i int
-	_, err := fmt.Scanf("%d", &i)
+
+	l, _, err := reader.ReadLine()
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		goto readAgain
+	} else if len(l) == 0 {
+		i = conf.MaxConnectionTime
+	} else if i, err = strconv.Atoi(string(l)); err != nil {
+		goto readAgain
 	}
 
 	if i > conf.MaxConnectionTime {
