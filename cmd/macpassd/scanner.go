@@ -30,35 +30,36 @@ func scanNetwork() {
 	line := []byte{}
 
 	hwPos := -1
+	isFirstLine := true
 	for _, data := range arpTable {
 		if !bytes.Equal([]byte{data}, []byte("\n")) {
 			line = append(line, data)
 		} else {
-			slog.With("line", string(data)).Debug("Parsing arp file line")
+			slog.With("line", string(data)).Debug("Get arp file line")
 
-			hwPos = strings.Index(string(line), "HW address")
-			if hwPos == -1 {
-				slog.With("line", string(line), "substring", "HW address").
-					Error("Substring cannot be found. Arp tables is not right")
-				break
-			} else {
-				slog.With("hwPos", hwPos).Debug("Found 'HW address' start")
-
-				slog.Debug("Parsing arp file line")
-
-				ip, mac, err := parseArpLine(line, hwPos)
-				slog.With("ip", ip, "mac", mac, "err", err).Debug("Line parsed")
-
-				if err != nil {
-					slog.With("line", string(line), "err", err).
-						Error("Error parsing arp line")
-				} else if !reflect.DeepEqual(mac.String(), emptyMac.String()) &&
-					isInSubnet(ip, network) {
-					slog.With("ip", ip, "mac", mac).Debug("Mac is not empty. Found ip in the subnet. Binding to mac")
-					registration.AddIpToMac(ip, mac)
+			if isFirstLine {
+				hwPos = strings.Index(string(line), "HW address")
+				if hwPos == -1 {
+					slog.With("line", string(line), "substring", "HW address").
+						Error("Substring cannot be found. Arp tables is not right")
+					break
 				}
+				slog.With("hwPos", hwPos).Debug("Found 'HW address' start")
+			}
+
+			ip, mac, err := parseArpLine(line, hwPos)
+			slog.With("ip", ip, "mac", mac, "err", err).Debug("Line parsed")
+
+			if err != nil {
+				slog.With("line", string(line), "err", err).
+					Error("Error parsing arp line")
+			} else if !reflect.DeepEqual(mac.String(), emptyMac.String()) &&
+				isInSubnet(ip, network) {
+				slog.With("ip", ip, "mac", mac).Debug("Mac is not empty. Found ip in the subnet. Binding to mac")
+				registration.AddIpToMac(ip, mac)
 			}
 			line = line[:0]
+			isFirstLine = false
 		}
 	}
 }
