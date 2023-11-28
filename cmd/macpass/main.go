@@ -10,6 +10,7 @@ import (
 	"internal/comunication"
 
 	"github.com/musianisamuele/macpass/cmd/macpass/config"
+	"github.com/musianisamuele/macpass/cmd/macpass/db"
 	"github.com/musianisamuele/macpass/cmd/macpass/input"
 
 	krbclient "github.com/jcmturner/gokrb5/v8/client"
@@ -18,14 +19,17 @@ import (
 
 func main() {
 	config.ParseConfig("./config.yaml")
+	conf := config.Get()
+	db.Connect(conf.DBPath)
 
 	user := login()
-	macAdd := input.Mac()
+	macAdd := input.Mac(user)
 	time := input.RegistrationTime()
 
 	fmt.Print(macAdd + "\t" + user + "\t")
 	fmt.Println(time)
 
+	db.InsertUser(user, macAdd)
 	send(comunication.Request{User: user, Mac: macAdd, Duration: time})
 }
 

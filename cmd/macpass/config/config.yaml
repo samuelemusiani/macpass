@@ -3,5 +3,7 @@ kerberos:
   disablePAFXFAST: true
 
 socketPath: /tmp/macpass.sock
+
+databasePath: ./db.sqlite
   
 maxConnectionTime: 8

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/musianisamuele/macpass/cmd/macpass/config"
+	"github.com/musianisamuele/macpass/cmd/macpass/db"
 	"github.com/musianisamuele/macpass/pkg/macparse"
 	"golang.org/x/term"
 )
@@ -44,8 +45,40 @@ func Credential() (string, string) {
 	return username, strings.TrimSpace(password)
 }
 
-func Mac() string {
+func Mac(user string) string {
+	// check if user has already enterd his mac in previous connections
+
 	reader := bufio.NewReader(os.Stdin)
+
+	if mac, isPresent := db.GetMac(user); isPresent {
+		fmt.Println("In your previous connection you used this mac: ", mac)
+		fmt.Print("Do you want to use it again? [y/n]: ")
+
+		var confirm bool
+
+		for ok := true; ok; {
+			response, err := reader.ReadString('\n')
+			response = strings.ToLower(strings.TrimSpace(response))
+
+			if err != nil {
+				log.Println(err)
+			} else {
+				log.Println(response)
+			}
+
+			if response == "y" || response == "yes" {
+				ok = false
+				confirm = true
+			} else if response == "n" || response == "no" {
+				ok = false
+				confirm = false
+			}
+		}
+
+		if confirm {
+			return mac
+		}
+	}
 
 	fmt.Print("Enter a MAC address: ")
 	macAdd, err := reader.ReadString('\n')

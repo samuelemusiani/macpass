@@ -15,6 +15,7 @@ type Config struct {
 	Kerberos          KerberosConfig `json:"kerberos"`
 	SocketPath        string         `json:"socketPath"`
 	MaxConnectionTime int            `json:"maxConnectionTime"`
+	DBPath            string         `json:"databasePath"`
 }
 
 var config Config
