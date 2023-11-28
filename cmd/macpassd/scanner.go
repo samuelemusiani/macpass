@@ -16,9 +16,11 @@ import (
 func scanNetwork() {
 	conf := config.Get()
 	network := net.IPNet{IP: net.ParseIP(conf.Network.Ip), Mask: net.IPMask(net.ParseIP(conf.Network.Mask))}
+	slog.With("ip", network.IP, "mask", network.Mask).Debug("Scanning network")
 
 	// get arptable
 	path := "/proc/net/arp"
+	slog.With("path", path).Debug("Reading arp cache file")
 	arpTable, err := os.ReadFile(path)
 	if err != nil {
 		slog.With("path", path, "err", err).Error("Can't read arp table. No logs can be provided for network devices")
@@ -32,22 +34,28 @@ func scanNetwork() {
 		if !bytes.Equal([]byte{data}, []byte("\n")) {
 			line = append(line, data)
 		} else {
+			slog.With("line", string(data)).Debug("Parsing arp file line")
+
+			hwPos = strings.Index(string(line), "HW address")
 			if hwPos == -1 {
-				hwPos = strings.Index(string(line), "HW address")
-				if hwPos == -1 {
-					slog.With("line", string(line), "substring", "HW address").
-						Error("Substring cannot be found. Arp tables is not right")
-					break
-				}
+				slog.With("line", string(line), "substring", "HW address").
+					Error("Substring cannot be found. Arp tables is not right")
+				break
 			} else {
+				slog.With("hwPos", hwPos).Debug("Found 'HW address' start")
+
+				slog.Debug("Parsing arp file line")
+
 				ip, mac, err := parseArpLine(line, hwPos)
+				slog.With("ip", ip, "mac", mac, "err", err).Debug("Line parsed")
+
 				if err != nil {
 					slog.With("line", string(line), "err", err).
 						Error("Error parsing arp line")
-				} else if !reflect.DeepEqual(mac.String(), emptyMac.String()) {
-					if isInSubnet(ip, network) {
-						registration.AddIpToMac(ip, mac)
-					}
+				} else if !reflect.DeepEqual(mac.String(), emptyMac.String()) &&
+					isInSubnet(ip, network) {
+					slog.With("ip", ip, "mac", mac).Debug("Mac is not empty. Found ip in the subnet. Binding to mac")
+					registration.AddIpToMac(ip, mac)
 				}
 			}
 			line = line[:0]
