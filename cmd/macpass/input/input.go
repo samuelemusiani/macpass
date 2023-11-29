@@ -53,7 +53,7 @@ func Mac(user string) string {
 
 	if mac, isPresent := db.GetMac(user); isPresent {
 		fmt.Println("In your previous connection you used this mac: ", mac)
-		fmt.Print("Do you want to use it again? [y/n]: ")
+		fmt.Print("Do you want to use it again? [Y/n]: ")
 
 		var confirm bool
 
@@ -63,11 +63,9 @@ func Mac(user string) string {
 
 			if err != nil {
 				log.Println(err)
-			} else {
-				log.Println(response)
 			}
 
-			if response == "y" || response == "yes" {
+			if response == "y" || response == "yes" || len(response) == 0 {
 				ok = false
 				confirm = true
 			} else if response == "n" || response == "no" {
