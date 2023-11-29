@@ -68,6 +68,7 @@ func startDaemon() {
 	for {
 		// checkIfStilConnected() TODO
 		deleteOldEntries()
+		deleteDisconnected()
 		scanNetwork()
 
 		time.Sleep(time.Duration(conf.IterationTime) * time.Second)
@@ -81,5 +82,22 @@ func deleteOldEntries() {
 	for _, e := range oldEntries {
 		deleteEntryFromFirewall(e)
 		registration.Remove(e)
+	}
+}
+
+func deleteDisconnected() {
+	entries := registration.GetAllEntries()
+
+	discTime := config.Get().DisconnectionTime
+
+	for _, e := range entries {
+		if !isStillConnected(e) {
+			if time.Now().Sub(e.LastPing) > time.Duration(discTime)*time.Minute {
+				deleteEntryFromFirewall(e)
+				registration.Remove(e)
+			}
+		} else {
+			registration.UpdateLastPing(e)
+		}
 	}
 }

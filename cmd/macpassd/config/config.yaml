@@ -22,6 +22,10 @@ network:
 # seconds
 iterationTime: 10
 
+# How much time to wait to remove an host that is not respondig to arpings. In
+# minutes
+disconnectionTime: 10
+
 loggerPath: "/var/log/macpassd-entries.log" # not working
 
 # The options are debug, info, warn and error

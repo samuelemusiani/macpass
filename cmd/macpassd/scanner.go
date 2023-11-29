@@ -8,7 +8,9 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"time"
 
+	"github.com/j-keck/arping"
 	"github.com/musianisamuele/macpass/cmd/macpassd/config"
 	"github.com/musianisamuele/macpass/cmd/macpassd/registration"
 )
@@ -85,4 +87,34 @@ func parseArpLine(line []byte, hwPos int) (net.IP, net.HardwareAddr, error) {
 
 func isInSubnet(ip net.IP, network net.IPNet) bool {
 	return ip.Mask(network.Mask).Equal(network.IP.Mask(network.Mask))
+}
+
+func isStillConnected(e registration.Registration) bool {
+	arping.SetTimeout(1 * time.Second) // should be put in config
+
+	for _, ip := range e.Ips {
+		mac, _, err := arping.Ping(ip)
+		if err != nil {
+			slog.With("ip", ip, "err", err).Error("error during arping")
+		} else {
+
+			if e.Mac != mac.String() {
+				// in this case another host has reponded to the arping. It is possible
+				// that multiples hosts have the same ip or that the previous host has
+				// changed ip and another host has now his old ip
+
+				// we need to delete old ips from the entries in order to perform this
+				// check correctly
+			}
+
+			return true
+		}
+	}
+
+	if len(e.Ips) > 0 {
+		return false
+	} else {
+		//if we do not have ips yet it's probably that is not connected yet
+		return true
+	}
 }

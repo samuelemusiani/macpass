@@ -13,13 +13,14 @@ import (
 // A Registration represent a pass that is binded to a user. The pass allow a
 // Mac to exit the firewall
 type Registration struct {
-	Id     uint64
-	User   string
-	Mac    string
-	Ips    []net.IP
-	Start  time.Time
-	End    time.Time
-	IsDown bool
+	Id       uint64
+	User     string
+	Mac      string
+	Ips      []net.IP
+	Start    time.Time
+	End      time.Time
+	LastPing time.Time
+	IsDown   bool
 }
 
 var (
@@ -30,7 +31,9 @@ var (
 
 func Add(newRequest comunication.Request) (r Registration) {
 	r = Registration{Id: ids, User: newRequest.User, Mac: newRequest.Mac,
-		Start: time.Now(), End: time.Now().Add(newRequest.Duration), Ips: []net.IP{}}
+		Start: time.Now(), End: time.Now().Add(newRequest.Duration),
+		Ips: []net.IP{}, LastPing: time.Now(), IsDown: false}
+
 	ids++
 
 	slog.With("registration", r).Debug("New registration will be added")
@@ -65,4 +68,24 @@ func AddIpToMac(ip net.IP, mac net.HardwareAddr) {
 	current.addIp(mac.String(), ip)
 
 	// Add to db
+}
+
+func GetAllEntries() (entries []Registration) {
+	slog.Debug("Getting all entries")
+
+	// Get from map
+	for _, reg := range current.v {
+		entries = append(entries, reg)
+	}
+
+	// Get from db
+	return
+}
+
+func UpdateLastPing(e Registration) {
+	//update on map
+	current.mu.Lock()
+	e.LastPing = time.Now()
+	current.v[e.Mac] = e
+	current.mu.Unlock()
 }
