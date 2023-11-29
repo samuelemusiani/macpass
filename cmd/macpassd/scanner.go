@@ -35,7 +35,7 @@ func scanNetwork() {
 		if !bytes.Equal([]byte{data}, []byte("\n")) {
 			line = append(line, data)
 		} else {
-			slog.With("line", string(data)).Debug("Get arp file line")
+			slog.With("line", string(line)).Debug("Get arp file line")
 
 			if isFirstLine {
 				hwPos = strings.Index(string(line), "HW address")
@@ -76,18 +76,13 @@ func parseArpLine(line []byte, hwPos int) (net.IP, net.HardwareAddr, error) {
 		return nil, nil, fmt.Errorf("hwPos is too small")
 	}
 
-	var ip net.IP
-	if line[11] == byte(' ') {
-		ip = net.ParseIP(string(line[0:11]))
-	} else {
-		ip = net.ParseIP(string(line[0:12]))
-	}
-
+	// forgive me for this
+	ip := net.ParseIP(strings.TrimSpace(string(line[0:15])))
 	mac, err := net.ParseMAC(string(line[hwPos : hwPos+17]))
 
 	return ip, mac, err
 }
 
 func isInSubnet(ip net.IP, network net.IPNet) bool {
-	return ip.Mask(network.Mask).Equal(net.IP(network.Mask))
+	return ip.Mask(network.Mask).Equal(network.IP.Mask(network.Mask))
 }
