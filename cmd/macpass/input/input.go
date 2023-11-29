@@ -2,11 +2,14 @@ package input
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"log"
+	"log/slog"
 	"net"
 	"net/mail"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 	"syscall"
@@ -54,6 +57,35 @@ func Mac(user string) string {
 	if mac, isPresent := db.GetMac(user); isPresent {
 		fmt.Println("In your previous connection you used this mac: ", mac)
 		fmt.Print("Do you want to use it again? [Y/n]: ")
+
+		var confirm bool
+
+		for ok := true; ok; {
+			response, err := reader.ReadString('\n')
+			response = strings.ToLower(strings.TrimSpace(response))
+
+			if err != nil {
+				log.Println(err)
+			}
+
+			if response == "y" || response == "yes" || len(response) == 0 {
+				ok = false
+				confirm = true
+			} else if response == "n" || response == "no" {
+				ok = false
+				confirm = false
+			}
+		}
+
+		if confirm {
+			return mac
+		}
+	}
+
+	mac := extractMacFromSSH()
+	if mac != "" {
+		fmt.Println("In this connection you are using: ", mac)
+		fmt.Print("Do you want to authenticate it? [Y/n]: ")
 
 		var confirm bool
 
@@ -146,4 +178,81 @@ readAgain:
 	}
 
 	return time.Duration(i) * time.Hour
+}
+
+func extractMacFromSSH() string {
+	sshClient, isPresent := os.LookupEnv("SSH_CLIENT")
+
+	var ip string
+	if !isPresent {
+		slog.Warn("Could not fine the var SSH_CLIENT")
+		return ""
+	}
+
+	index := strings.Index(sshClient, " ")
+	if index == -1 {
+		slog.With("SSH_CLIENT", sshClient).Error("Could not parse variable")
+		return ""
+	}
+
+	ip = sshClient[0:index]
+	slog.With("ip", ip).Debug("Found ip in ssh connection")
+
+	f, err := os.ReadFile("/proc/net/arp")
+	if err != nil {
+		slog.With("err", err).Error("Could not read arp cache")
+	}
+
+	emptyMac, _ := net.ParseMAC("00:00:00:00:00:00")
+	line := []byte{}
+	hwPos := -1
+	isFirstLine := true
+
+	for _, data := range f {
+		if !bytes.Equal([]byte{data}, []byte("\n")) {
+			line = append(line, data)
+		} else {
+			slog.With("line", string(line)).Debug("Get arp file line")
+
+			if isFirstLine {
+				hwPos = strings.Index(string(line), "HW address")
+				if hwPos == -1 {
+					slog.With("line", string(line), "substring", "HW address").
+						Error("Substring cannot be found. Arp tables is not right")
+					break
+				}
+				slog.With("hwPos", hwPos).Debug("Found 'HW address' start")
+				isFirstLine = false
+			} else if strings.Contains(string(line), string(ip)) {
+				mac, err := parseArpLine(line, hwPos)
+				slog.With("ip", ip, "mac", mac, "err", err).Debug("Line parsed")
+
+				if err != nil {
+					slog.With("line", string(line), "err", err).
+						Error("Error parsing arp line")
+				} else if !reflect.DeepEqual(mac.String(), emptyMac.String()) {
+					slog.With("mac", mac).Debug("Mac is not empty")
+					return mac.String()
+				}
+			}
+			line = line[:0]
+		}
+	}
+	return ""
+}
+
+// line is the all line of the arp table
+// hwPos the the number of the first byte that contains the mac address
+func parseArpLine(line []byte, hwPos int) (net.HardwareAddr, error) {
+	l := len(line)
+	if hwPos >= l {
+		return nil, fmt.Errorf("hwPos is greater than the line length")
+	}
+	if hwPos <= 0 {
+		return nil, fmt.Errorf("hwPos is too small")
+	}
+
+	mac, err := net.ParseMAC(string(line[hwPos : hwPos+17]))
+
+	return mac, err
 }
