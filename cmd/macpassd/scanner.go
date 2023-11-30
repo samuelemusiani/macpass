@@ -95,7 +95,7 @@ func isStillConnected(e registration.Registration) bool {
 	for _, ip := range e.Ips {
 		mac, _, err := arping.Ping(ip)
 		if err != nil {
-			slog.With("ip", ip, "err", err).Error("error during arping")
+			slog.With("ip", ip, "err", err).Debug("error during arping")
 		} else {
 
 			if e.Mac != mac.String() {
