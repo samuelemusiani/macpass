@@ -92,12 +92,21 @@ func deleteDisconnected() {
 
 	for _, e := range entries {
 		if !isStillConnected(e) {
+			if !e.IsDown {
+				slog.Info(e.User + " disconnected")
+				registration.SetHostDown(e)
+			}
+
 			if time.Now().Sub(e.LastPing) > time.Duration(discTime)*time.Minute {
 				deleteEntryFromFirewall(e)
 				registration.Remove(e)
 			}
 		} else {
 			registration.UpdateLastPing(e)
+			if e.IsDown {
+				slog.Info(e.User + " reconnected")
+				registration.SetHostUp(e)
+			}
 		}
 	}
 }

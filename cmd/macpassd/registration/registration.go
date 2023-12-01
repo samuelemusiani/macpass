@@ -89,3 +89,19 @@ func UpdateLastPing(e Registration) {
 	current.v[e.Mac] = e
 	current.mu.Unlock()
 }
+
+func SetHostDown(e Registration) {
+	//update on map
+	current.mu.Lock()
+	e.IsDown = true
+	current.v[e.Mac] = e
+	current.mu.Unlock()
+}
+
+func SetHostUp(e Registration) {
+	//update on map
+	current.mu.Lock()
+	e.IsDown = false
+	current.v[e.Mac] = e
+	current.mu.Unlock()
+}
