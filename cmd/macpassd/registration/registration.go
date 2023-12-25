@@ -105,3 +105,18 @@ func SetHostUp(e Registration) {
 	current.v[e.Mac] = e
 	current.mu.Unlock()
 }
+
+func RemoveIP(e Registration, ip net.IP) {
+	newIps := make([]net.IP, 0)
+
+	for _, i := range e.Ips {
+		if !i.Equal(ip) {
+			newIps = append(newIps, i)
+		}
+	}
+
+	current.mu.Lock()
+	e.Ips = newIps
+	current.v[e.Mac] = e
+	current.mu.Unlock()
+}

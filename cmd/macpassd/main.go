@@ -2,9 +2,11 @@ package main
 
 import (
 	"log/slog"
+	"net"
 	"os"
 	"time"
 
+	"github.com/j-keck/arping"
 	"github.com/musianisamuele/macpass/cmd/macpassd/config"
 	"github.com/musianisamuele/macpass/cmd/macpassd/registration"
 )
@@ -68,6 +70,7 @@ func startDaemon() {
 	for {
 		// checkIfStilConnected() TODO
 		deleteOldEntries()
+		deleteOldIps()
 		deleteDisconnected()
 		scanNetwork()
 
@@ -82,6 +85,40 @@ func deleteOldEntries() {
 	for _, e := range oldEntries {
 		deleteEntryFromFirewall(e)
 		registration.Remove(e)
+	}
+}
+
+// If a host change the ip in the registration there will be 2 ips. But
+// one of them does not repond and could be take by another host. So if a host
+// have multiples ips we check every ip and if at least one respond we remove
+// the others.
+//
+// This function does not remove the entry and does not remove the ips if none
+// of them respond
+func deleteOldIps() {
+	entries := registration.GetAllEntries()
+
+	for _, e := range entries {
+		if len(e.Ips) > 1 {
+			ipsThatDidNotAnswered := make([]net.IP, 0)
+
+			for _, ip := range e.Ips {
+				_, _, err := arping.Ping(ip)
+				if err != nil {
+					slog.With("ip", ip, "err", err).Debug("error during arping")
+					ipsThatDidNotAnswered = append(ipsThatDidNotAnswered, ip)
+				}
+			}
+
+			if len(e.Ips) == len(ipsThatDidNotAnswered) {
+				// it's not my job if none of the ips answered
+				break
+			}
+
+			for _, ip := range ipsThatDidNotAnswered {
+				registration.RemoveIP(e, ip)
+			}
+		}
 	}
 }
 
