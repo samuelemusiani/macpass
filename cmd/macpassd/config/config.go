@@ -15,7 +15,6 @@ type Network struct {
 	Ip      string `json:"ip"`
 	Mask    string `json:"subnetmask"`
 	Timeout uint64 `json:"timeout"`
-	Workers uint8  `json:"workers"`
 }
 
 type Config struct {
