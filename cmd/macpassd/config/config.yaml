@@ -17,6 +17,11 @@ iterationTime: 10
 # minutes
 disconnectionTime: 10
 
+# All the active connections are stored in a sqlite db in order to restart the
+# macpassd service without losing the connections. If the path is empty this 
+# feature is disabled
+dbPath: "/var/db/macpassd-entries.db"
+
 loggerPath: "/var/log/macpassd-entries.log" # not working
 
 # The options are debug, info, warn and error

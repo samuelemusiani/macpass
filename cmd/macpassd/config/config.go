@@ -21,6 +21,7 @@ type Config struct {
 	Socket            Socket  `json:"socket"`
 	Network           Network `json:"network"`
 	LoggerPath        string  `json:"loggerPath"`
+	DbPath            string  `json:"dbPath"`
 	LogLevel          string  `json:"logLevel"`
 	IterationTime     int     `json:"iterationTime"`
 	DisconnectionTime int     `json:"disconnectionTime"`
