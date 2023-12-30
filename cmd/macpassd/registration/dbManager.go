@@ -160,7 +160,7 @@ func convertBytesToIPs(blob []byte) ([]net.IP, error) {
 			tmp[j] = blob[i+j]
 		}
 
-		ips[i%16] = net.IP(tmp)
+		ips[i/16] = net.IP(tmp)
 	}
 
 	return ips, nil

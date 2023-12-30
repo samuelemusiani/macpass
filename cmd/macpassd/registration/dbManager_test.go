@@ -67,6 +67,34 @@ func TestGetActive(t *testing.T) {
 	assert.Equal(t, len(macs), 2)
 }
 
+func TestIpsParsingEmpty(t *testing.T) {
+	db := connectDB(MemoryDB)
+	defer db.Close()
+
+	insertRegistration(db, Registration{Id: 100, User: "user0",
+		Mac: "08:7d:bb:7a:cb:d0", Ips: make([]net.IP, 0),
+		Start: time.Now(), End: time.Now().Add(time.Hour), IsDown: false})
+
+	a := getActive(db)
+	assert.Equal(t, len(a), 1)
+	assert.Equal(t, len(a[0].Ips), 0)
+}
+
+func TestIpsParsing(t *testing.T) {
+	db := connectDB(MemoryDB)
+	defer db.Close()
+
+	ips := []net.IP{net.IPv4(192, 168, 1, 1), net.IPv4bcast, net.IPv4(1, 1, 1, 1), net.IPv6zero, net.IPv6loopback}
+
+	insertRegistration(db, Registration{Id: 100, User: "user0",
+		Mac: "08:7d:bb:7a:cb:d0", Ips: ips,
+		Start: time.Now(), End: time.Now().Add(time.Hour), IsDown: false})
+
+	a := getActive(db)
+	assert.Equal(t, len(a), 1)
+	assert.DeepEqual(t, a[0].Ips, ips)
+}
+
 func checkEqualMacRegistration(t *testing.T, macReg1, macReg2 Registration) {
 	assert.Equal(t, macReg1.Mac, macReg2.Mac)
 	assert.Equal(t, macReg1.User, macReg2.User)
