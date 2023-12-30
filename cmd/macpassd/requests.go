@@ -16,6 +16,6 @@ func handleRequest(newEntry comunication.Request) {
 
 	slog.With("requst", newEntry).Info("Handlig new request")
 
-	reg := registration.Add(newEntry)
+	reg := registration.AddRequest(newEntry)
 	allowNewEntryOnFirewall(reg)
 }

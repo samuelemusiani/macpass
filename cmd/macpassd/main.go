@@ -63,8 +63,16 @@ func startDaemon() {
 	initIptables()
 
 	initComunication()
-	go handleComunication()
+	registration.Init()
 
+	// Reload state from db to avoid dropping connection on restart
+	old := registration.GetOldStateFromDB()
+	for i := range old {
+		registration.AddRegistrationToMapFromDB(old[i])
+		allowNewEntryOnFirewall(old[i])
+	}
+
+	go handleComunication()
 	conf := config.Get()
 
 	for {

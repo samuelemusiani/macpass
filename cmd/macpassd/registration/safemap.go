@@ -30,10 +30,10 @@ func (m *safeMap) remove(mac string) {
 }
 
 func (m *safeMap) addIp(mac string, ip net.IP) {
-	_, present := current.v[mac]
+	_, present := m.v[mac]
 	if present {
-		current.mu.Lock()
-		val := current.v[mac]
+		m.mu.Lock()
+		val := m.v[mac]
 
 		if !isIpPrenset(val.Ips, ip) {
 			val.Ips = append(val.Ips, ip) //Need to check for duplicates
@@ -41,8 +41,8 @@ func (m *safeMap) addIp(mac string, ip net.IP) {
 				Info("The registration is been updated on the map")
 		}
 
-		current.v[mac] = val
-		current.mu.Unlock()
+		m.v[mac] = val
+		m.mu.Unlock()
 	}
 }
 

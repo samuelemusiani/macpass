@@ -11,7 +11,7 @@ import (
 
 func TetsConnecting(t *testing.T) {
 	test := "grfgQngnonfrJvguFrpergAnzr.sql"
-	db := connectDB(test)
+	db := dbConnect(test)
 	defer db.Close()
 	os.Remove(test)
 }
@@ -19,14 +19,14 @@ func TetsConnecting(t *testing.T) {
 const MemoryDB = ":memory:"
 
 func TestSetOutdated(t *testing.T) {
-	db := connectDB(MemoryDB)
+	db := dbConnect(MemoryDB)
 	defer db.Close()
 
 	hour, ms := time.Hour, time.Millisecond
-	insertRegistration(db, Registration{Id: 100, User: "user0",
+	dbInsertRegistration(db, Registration{Id: 100, User: "user0",
 		Mac: "08:7d:bb:7a:cb:d0", Ips: []net.IP{net.IPv4(1, 2, 3, 4)},
 		Start: time.Now(), End: time.Now().Add(hour), IsDown: false})
-	insertRegistration(db, Registration{Id: 101, User: "user1",
+	dbInsertRegistration(db, Registration{Id: 101, User: "user1",
 		Mac: "80:57:61:7e:d1:dd", Ips: []net.IP{net.IPv4(5, 6, 7, 8)},
 		Start: time.Now(), End: time.Now().Add(hour), IsDown: false})
 
@@ -35,10 +35,10 @@ func TestSetOutdated(t *testing.T) {
 		Start: time.Now(), End: time.Now().Add(ms), IsDown: false}
 
 	time.Sleep(2 * ms)
-	insertRegistration(db, user2)
+	dbInsertRegistration(db, user2)
 
-	r := getOutdated(db)
-	setOutdated(db, r)
+	r := dbGetOutdated(db)
+	dbSetOutdated(db, r)
 	assert.Equal(t, len(r), 1)
 
 	user3out := r[0]
@@ -46,51 +46,51 @@ func TestSetOutdated(t *testing.T) {
 }
 
 func TestGetActive(t *testing.T) {
-	db := connectDB(MemoryDB)
+	db := dbConnect(MemoryDB)
 	defer db.Close()
 	hour, _ := time.ParseDuration("1h")
 	ms, _ := time.ParseDuration("1ms")
 
-	insertRegistration(db, Registration{Id: 100, User: "user0",
+	dbInsertRegistration(db, Registration{Id: 100, User: "user0",
 		Mac: "08:7d:bb:7a:cb:d0", Ips: []net.IP{net.IPv4(1, 2, 3, 4)},
 		Start: time.Now(), End: time.Now().Add(hour), IsDown: false})
-	insertRegistration(db, Registration{Id: 101, User: "user1",
+	dbInsertRegistration(db, Registration{Id: 101, User: "user1",
 		Mac: "80:57:61:7e:d1:dd", Ips: []net.IP{net.IPv4(5, 6, 7, 8)},
 		Start: time.Now(), End: time.Now().Add(hour), IsDown: false})
 
-	insertRegistration(db, Registration{Id: 102, User: "user2",
+	dbInsertRegistration(db, Registration{Id: 102, User: "user2",
 		Mac: "fb:65:ee:13:76:af", Ips: []net.IP{net.IPv4(122, 245, 1, 75)},
 		Start: time.Now(), End: time.Now().Add(ms), IsDown: false})
 
 	time.Sleep(2 * ms)
-	macs := getActive(db)
+	macs := dbGetActive(db)
 	assert.Equal(t, len(macs), 2)
 }
 
 func TestIpsParsingEmpty(t *testing.T) {
-	db := connectDB(MemoryDB)
+	db := dbConnect(MemoryDB)
 	defer db.Close()
 
-	insertRegistration(db, Registration{Id: 100, User: "user0",
+	dbInsertRegistration(db, Registration{Id: 100, User: "user0",
 		Mac: "08:7d:bb:7a:cb:d0", Ips: make([]net.IP, 0),
 		Start: time.Now(), End: time.Now().Add(time.Hour), IsDown: false})
 
-	a := getActive(db)
+	a := dbGetActive(db)
 	assert.Equal(t, len(a), 1)
 	assert.Equal(t, len(a[0].Ips), 0)
 }
 
 func TestIpsParsing(t *testing.T) {
-	db := connectDB(MemoryDB)
+	db := dbConnect(MemoryDB)
 	defer db.Close()
 
 	ips := []net.IP{net.IPv4(192, 168, 1, 1), net.IPv4bcast, net.IPv4(1, 1, 1, 1), net.IPv6zero, net.IPv6loopback}
 
-	insertRegistration(db, Registration{Id: 100, User: "user0",
+	dbInsertRegistration(db, Registration{Id: 100, User: "user0",
 		Mac: "08:7d:bb:7a:cb:d0", Ips: ips,
 		Start: time.Now(), End: time.Now().Add(time.Hour), IsDown: false})
 
-	a := getActive(db)
+	a := dbGetActive(db)
 	assert.Equal(t, len(a), 1)
 	assert.DeepEqual(t, a[0].Ips, ips)
 }

@@ -12,7 +12,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func connectDB(dbPath string) *sql.DB {
+func dbConnect(dbPath string) *sql.DB {
 	slog.Info("Connecting to DB")
 
 	// If the path is prefixed with ":" the db is created in memory. This helps
@@ -62,7 +62,7 @@ func connectDB(dbPath string) *sql.DB {
 
 // This function change the value "isDown" to true for every items in the
 // db that match the ids of the items in r
-func setOutdated(db *sql.DB, r []Registration) {
+func dbSetOutdated(db *sql.DB, r []Registration) {
 	for i := range r {
 		query := `update Log set isDown = true where id = ?`
 
@@ -73,7 +73,7 @@ func setOutdated(db *sql.DB, r []Registration) {
 	}
 }
 
-func insertRegistration(db *sql.DB, r Registration) {
+func dbInsertRegistration(db *sql.DB, r Registration) {
 	const query = `insert into Log(User, MAC, IPs, startTime, endTime, isDown) values(?, ?, ?, ?, ?, false)`
 	_, err := db.Exec(query, r.User, r.Mac, convertIPsToBytes(r.Ips), r.Start, r.End)
 	if err != nil {
@@ -82,7 +82,7 @@ func insertRegistration(db *sql.DB, r Registration) {
 	}
 }
 
-func getActive(db *sql.DB) []Registration {
+func dbGetActive(db *sql.DB) []Registration {
 	selectOutdated := `select * from Log where ? < endTime and isDown = false`
 	row, err := db.Query(selectOutdated, time.Now())
 	if err != nil {
@@ -91,12 +91,12 @@ func getActive(db *sql.DB) []Registration {
 
 		return make([]Registration, 0)
 	}
-	return parseRows(row)
+	return dbParseRows(row)
 }
 
 // Return all registrations that are outdated based on endTime, BUT NOT FROM THE
 // "isDown" value. After this, the function setOutdated(...) should be called.
-func getOutdated(db *sql.DB) []Registration {
+func dbGetOutdated(db *sql.DB) []Registration {
 	selectOutdated := `select * from Log where ? > endTime and isDown = false`
 	row, err := db.Query(selectOutdated, time.Now())
 	if err != nil {
@@ -105,10 +105,10 @@ func getOutdated(db *sql.DB) []Registration {
 
 		return make([]Registration, 0)
 	}
-	return parseRows(row)
+	return dbParseRows(row)
 }
 
-func parseRows(rows *sql.Rows) (r []Registration) {
+func dbParseRows(rows *sql.Rows) (r []Registration) {
 	for rows.Next() {
 		var tmp Registration
 		tmpIps := make([]byte, 0)
