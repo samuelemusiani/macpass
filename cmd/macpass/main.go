@@ -45,16 +45,25 @@ func login() string {
 
 	user, passwd := input.Credential()
 
-	cl := krbclient.NewWithPassword(strings.Split(user, "@")[0],
-		config.Get().Kerberos.Realm, passwd, krbconf,
-		krbclient.DisablePAFXFAST(config.Get().Kerberos.DisablePAFXFAST))
+	logins := config.Get().Login
 
-	if err := cl.Login(); err != nil {
-		log.Fatal(err)
+	// test keberos logins
+	for _, d := range logins.KerberosDomains {
+		cl := krbclient.NewWithPassword(strings.Split(user, "@")[0], d.Realm,
+			passwd, krbconf, krbclient.DisablePAFXFAST(d.DisablePAFXFAST))
+
+		if err := cl.Login(); err == nil {
+			// If login is succesful we return the user to bind the MAC address
+			return user
+		}
 	}
 
-	// If login is succesful we return the user to bind the MAC address
-	return user
+	// test ldap logins
+	// for _, d := range logins.LdapDomains {
+	// }
+
+	log.Fatal("The user can't be autenticated")
+	return "" // unreachable code
 }
 
 func send(r comunication.Request) {
