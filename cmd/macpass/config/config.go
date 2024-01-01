@@ -6,16 +6,32 @@ import (
 	"github.com/ghodss/yaml"
 )
 
-type KerberosConfig struct {
+type KerberosDomain struct {
+	Id              string `json:"id"`
 	Realm           string `json:"realm"`
 	DisablePAFXFAST bool   `json:"disablePAFXFAST"`
 }
 
+type LdapDomain struct {
+	Id                 string `json:"id"`
+	Address            string `json:"address"`
+	BindDN             string `json:"bindDN"`
+	BindPW             string `json:"bindPW"`
+	StartTLS           bool   `json:"startTLS"`
+	InsecureNoSSL      bool   `json:"insecureNoSSL"`
+	InsecureSkipVerify bool   `json:"insecureSkipVerify"`
+}
+
+type Login struct {
+	KerberosDomains []KerberosDomain `json:"kerberos"`
+	LdapDomains     []LdapDomain     `json:"ldap"`
+}
+
 type Config struct {
-	Kerberos          KerberosConfig `json:"kerberos"`
-	SocketPath        string         `json:"socketPath"`
-	MaxConnectionTime int            `json:"maxConnectionTime"`
-	DBPath            string         `json:"databasePath"`
+	Login             Login  `json:"login"`
+	SocketPath        string `json:"socketPath"`
+	MaxConnectionTime int    `json:"maxConnectionTime"`
+	DBPath            string `json:"databasePath"`
 }
 
 var config Config

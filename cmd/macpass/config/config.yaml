@@ -1,19 +1,18 @@
 login:
-  - keberos:
+  kerberos:
     - id: name1
       realm: ATHENA.MIT.EDU
       disablePAFXFAST: true
 
     - id: name2
-      realm: ATHENA.MIT.EDU
-      disablePAFXFAST: true
+      realm: ZEUS.MIT.NOEDU
+      disablePAFXFAST: false
 
-  - ldap:
+  ldap:
     - id: name3
       address: "ldaps://ldap.example.com:636"
       bindDN: "cn=admin,dc=example,dc=com"
       bindPW: "password"
-      disablePAFXFAST: true
       # If 389 port is specified we try to use startTLS
       startTLS: true
       # If startTLS fails do we use ldap without tls? THIS LEAKS PASSWORDS
@@ -22,6 +21,19 @@ login:
       # TLS certificate checks. As noted, it is insecure and shouldn't be used 
       # outside of explorative phases.
       insecureSkipVerify: false
+
+    - id: name4
+      address: "ldap://ldap.google.com:389"
+      bindDN: "cn=admin,dc=google,dc=com"
+      bindPW: "1234"
+      # If 389 port is specified we try to use startTLS
+      startTLS: false
+      # If startTLS fails do we use ldap without tls? THIS LEAKS PASSWORDS
+      insecureNoSSL: true
+      # If a custom certificate isn't provide, this option can be used to turn on
+      # TLS certificate checks. As noted, it is insecure and shouldn't be used 
+      # outside of explorative phases.
+      insecureSkipVerify: true
 
 
 socketPath: /tmp/macpass.sock
