@@ -23,6 +23,10 @@ login:
       insecureSkipVerify: false
       userDNType: "uid"
       baseDN: "dc=example,dc=com"
+      # The input require a mail. If the ldapbind is only for the user this 
+      # option consider only the first part of the mail 
+      # (es. user@mail.com -> user)
+      removeMail: true
 
     - id: name4
       address: "ldap://ldap.google.com:389"
@@ -38,6 +42,10 @@ login:
       insecureSkipVerify: true
       userDNType: "uid"
       baseDN: "ou=users,dc=google,dc=com"
+      # The input require a mail. If the ldapbind is only for the user this 
+      # option consider only the first part of the mail 
+      # (es. user@mail.com -> user)
+      removeMail: true
 
 
 socketPath: /tmp/macpass.sock
@@ -45,3 +53,5 @@ socketPath: /tmp/macpass.sock
 databasePath: ./db.sqlite
   
 maxConnectionTime: 8
+
+log: true

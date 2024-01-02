@@ -22,6 +22,7 @@ type LdapDomain struct {
 	InsecureSkipVerify bool   `json:"insecureSkipVerify"`
 	UserDNType         string `json:"userDNType"`
 	BaseDN             string `json:"baseDN"`
+	RemoveMail         bool   `json:"removeMail"`
 }
 
 type Login struct {
@@ -34,6 +35,7 @@ type Config struct {
 	SocketPath        string `json:"socketPath"`
 	MaxConnectionTime int    `json:"maxConnectionTime"`
 	DBPath            string `json:"databasePath"`
+	Logs              bool   `json:"log"`
 }
 
 var config Config

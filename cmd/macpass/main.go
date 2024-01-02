@@ -6,8 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"log/slog"
 	"net"
 	"net/url"
+	"os"
 	"strings"
 
 	"internal/comunication"
@@ -25,6 +27,15 @@ import (
 func main() {
 	config.ParseConfig("./config.yaml")
 	conf := config.Get()
+
+	// log
+	if conf.Logs {
+		handler := slog.NewTextHandler(os.Stderr,
+			&slog.HandlerOptions{Level: slog.LevelDebug})
+		slog.SetDefault(slog.New(handler))
+		slog.Debug("Debug slog active")
+	}
+
 	db.Connect(conf.DBPath)
 
 	user := login()
@@ -43,8 +54,11 @@ func login() string {
   dns_lookup_realm = true
   dns_lookup_kdc = true
   `
+
+	slog.Debug("Creating kerberos config")
 	krbconf, err := krbconfig.NewFromString(krb5Conf)
 	if err != nil {
+		slog.Error("Failed to create config for kerberos")
 		log.Fatal(err)
 	}
 
@@ -53,20 +67,27 @@ func login() string {
 	logins := config.Get().Login
 
 	// test keberos logins
+	slog.Debug("Testing kerberos domains for login")
 	for _, d := range logins.KerberosDomains {
+		slog.Debug("Creating new kerberos client")
 		cl := krbclient.NewWithPassword(strings.Split(user, "@")[0], d.Realm,
 			passwd, krbconf, krbclient.DisablePAFXFAST(d.DisablePAFXFAST))
 
 		if err := cl.Login(); err == nil {
 			// If login is succesful we return the user to bind the MAC address
+			slog.With("domain", d).Debug("Login successfull")
 			return user
 		}
+		slog.With("domain", d).Debug("Login failed")
 	}
 
 	// test ldap logins
+	slog.Debug("Testing LDAP domains for login")
 	for _, d := range logins.LdapDomains {
+		slog.Debug("Try to establish a connection to LDAP server")
 		l, err := establishLdapConnection(&d)
 		if err != nil {
+			slog.With("domain", d, "err", err).Debug("Connection failed")
 			continue
 		}
 		defer l.Close()
@@ -74,14 +95,25 @@ func login() string {
 		// First bind with a read only user
 		err = l.Bind(d.BindDN, d.BindPW)
 		if err != nil {
+			slog.With("domain", d, "err", err).Debug("Bind with read-only user failed")
 			continue
 		}
 
-		err = l.Bind(d.UserDNType+"="+user+","+d.BaseDN, passwd)
+		var tmpUser string
+		if d.RemoveMail {
+			tmpUser = tmpUser[:strings.Index(tmpUser, "@")]
+		} else {
+			tmpUser = user
+		}
+
+		slog.Debug("Binding with: " + string(d.UserDNType+"="+tmpUser+","+d.BaseDN))
+		err = l.Bind(d.UserDNType+"="+tmpUser+","+d.BaseDN, passwd)
 		if err != nil {
+			slog.With("domain", d, "err", err).Debug("Bind for user failed")
 			continue
 		}
 
+		slog.With("domain", d).Debug("Successfully logged in")
 		return user
 	}
 
