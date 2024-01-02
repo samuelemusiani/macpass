@@ -23,6 +23,8 @@ func TestParseConfigLdap(t *testing.T) {
 	assert.Equal(t, conf.Login.LdapDomains[0].StartTLS, true)
 	assert.Equal(t, conf.Login.LdapDomains[0].InsecureNoSSL, false)
 	assert.Equal(t, conf.Login.LdapDomains[0].InsecureSkipVerify, false)
+	assert.Equal(t, conf.Login.LdapDomains[0].UserDNType, "uid")
+	assert.Equal(t, conf.Login.LdapDomains[0].BaseDN, "dc=example,dc=com")
 
 	assert.Equal(t, conf.Login.LdapDomains[1].Id, "name4")
 	assert.Equal(t, conf.Login.LdapDomains[1].Address, "ldap://ldap.google.com:389")
@@ -31,6 +33,8 @@ func TestParseConfigLdap(t *testing.T) {
 	assert.Equal(t, conf.Login.LdapDomains[1].StartTLS, false)
 	assert.Equal(t, conf.Login.LdapDomains[1].InsecureNoSSL, true)
 	assert.Equal(t, conf.Login.LdapDomains[1].InsecureSkipVerify, true)
+	assert.Equal(t, conf.Login.LdapDomains[1].UserDNType, "uid")
+	assert.Equal(t, conf.Login.LdapDomains[1].BaseDN, "ou=users,dc=google,dc=com")
 }
 
 func TestParseConfigKerberos(t *testing.T) {

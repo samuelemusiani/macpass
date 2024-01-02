@@ -21,6 +21,8 @@ login:
       # TLS certificate checks. As noted, it is insecure and shouldn't be used 
       # outside of explorative phases.
       insecureSkipVerify: false
+      userDNType: "uid"
+      baseDN: "dc=example,dc=com"
 
     - id: name4
       address: "ldap://ldap.google.com:389"
@@ -34,6 +36,8 @@ login:
       # TLS certificate checks. As noted, it is insecure and shouldn't be used 
       # outside of explorative phases.
       insecureSkipVerify: true
+      userDNType: "uid"
+      baseDN: "ou=users,dc=google,dc=com"
 
 
 socketPath: /tmp/macpass.sock

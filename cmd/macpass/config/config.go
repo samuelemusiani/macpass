@@ -20,6 +20,8 @@ type LdapDomain struct {
 	StartTLS           bool   `json:"startTLS"`
 	InsecureNoSSL      bool   `json:"insecureNoSSL"`
 	InsecureSkipVerify bool   `json:"insecureSkipVerify"`
+	UserDNType         string `json:"userDNType"`
+	BaseDN             string `json:"baseDN"`
 }
 
 type Login struct {

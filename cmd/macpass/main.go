@@ -1,10 +1,13 @@
 package main
 
 import (
+	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net"
+	"net/url"
 	"strings"
 
 	"internal/comunication"
@@ -15,6 +18,8 @@ import (
 
 	krbclient "github.com/jcmturner/gokrb5/v8/client"
 	krbconfig "github.com/jcmturner/gokrb5/v8/config"
+
+	ldap "github.com/go-ldap/ldap/v3"
 )
 
 func main() {
@@ -59,11 +64,72 @@ func login() string {
 	}
 
 	// test ldap logins
-	// for _, d := range logins.LdapDomains {
-	// }
+	for _, d := range logins.LdapDomains {
+		l, err := establishLdapConnection(&d)
+		if err != nil {
+			continue
+		}
+		defer l.Close()
+
+		// First bind with a read only user
+		err = l.Bind(d.BindDN, d.BindPW)
+		if err != nil {
+			continue
+		}
+
+		err = l.Bind(d.UserDNType+"="+user+","+d.BaseDN, passwd)
+		if err != nil {
+			continue
+		}
+
+		return user
+	}
 
 	log.Fatal("The user can't be autenticated")
 	return "" // unreachable code
+}
+
+func establishLdapConnection(d *config.LdapDomain) (*ldap.Conn, error) {
+
+	dUrl, err := url.Parse(d.Address)
+	if err != nil {
+		return nil, err
+	}
+
+	tlsConfig := tls.Config{InsecureSkipVerify: d.InsecureSkipVerify}
+
+	var c *ldap.Conn = nil
+
+	switch dUrl.Scheme {
+	case "ldap":
+		{
+			if d.StartTLS {
+				c, err = ldap.DialURL(d.Address)
+				if err != nil {
+					return nil, err
+				}
+				err = c.StartTLS(&tlsConfig)
+			} else {
+				c, err = ldap.DialURL(d.Address)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	case "ldaps":
+		{
+			c, err = ldap.DialURL(d.Address, ldap.DialWithTLSConfig(&tlsConfig))
+			if err != nil {
+				return nil, err
+			}
+		}
+	default:
+		{
+			return nil, errors.New("Invalid scheme in server URI: " + dUrl.Scheme)
+		}
+	}
+
+	return c, nil
 }
 
 func send(r comunication.Request) {
