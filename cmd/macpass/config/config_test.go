@@ -11,6 +11,28 @@ func TestParseConfigWrongPath(t *testing.T) {
 	assert.Assert(t, err != nil)
 }
 
+func TestParseConfigLdap(t *testing.T) {
+	err := ParseConfig("./config.yaml")
+	assert.NilError(t, err)
+	conf := Get()
+
+	assert.Equal(t, conf.Login.LdapDomains[0].Id, "name3")
+	assert.Equal(t, conf.Login.LdapDomains[0].Address, "ldaps://ldap.example.com:636")
+	assert.Equal(t, conf.Login.LdapDomains[0].BindDN, "cn=admin,dc=example,dc=com")
+	assert.Equal(t, conf.Login.LdapDomains[0].BindPW, "password")
+	assert.Equal(t, conf.Login.LdapDomains[0].StartTLS, true)
+	assert.Equal(t, conf.Login.LdapDomains[0].InsecureNoSSL, false)
+	assert.Equal(t, conf.Login.LdapDomains[0].InsecureSkipVerify, false)
+
+	assert.Equal(t, conf.Login.LdapDomains[1].Id, "name4")
+	assert.Equal(t, conf.Login.LdapDomains[1].Address, "ldap://ldap.google.com:389")
+	assert.Equal(t, conf.Login.LdapDomains[1].BindDN, "cn=admin,dc=google,dc=com")
+	assert.Equal(t, conf.Login.LdapDomains[1].BindPW, "1234")
+	assert.Equal(t, conf.Login.LdapDomains[1].StartTLS, false)
+	assert.Equal(t, conf.Login.LdapDomains[1].InsecureNoSSL, true)
+	assert.Equal(t, conf.Login.LdapDomains[1].InsecureSkipVerify, true)
+}
+
 func TestParseConfigKerberos(t *testing.T) {
 	err := ParseConfig("./config.yaml")
 	assert.NilError(t, err)
