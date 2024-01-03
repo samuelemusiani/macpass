@@ -38,7 +38,7 @@ func main() {
 
 	db.Connect(conf.DBPath)
 
-	user := login()
+	user, _ := login()
 	macAdd := input.Mac(user)
 	time := input.RegistrationTime()
 
@@ -49,7 +49,8 @@ func main() {
 	send(comunication.Request{User: user, Mac: macAdd, Duration: time})
 }
 
-func login() string {
+// Returns the user and the id of the login.
+func login() (user string, id string) {
 	const krb5Conf = `[libdefaults]
   dns_lookup_realm = true
   dns_lookup_kdc = true
@@ -62,7 +63,8 @@ func login() string {
 		log.Fatal(err)
 	}
 
-	user, passwd := input.Credential()
+	passwd := ""
+	user, passwd = input.Credential()
 
 	logins := config.Get().Login
 
@@ -76,7 +78,7 @@ func login() string {
 		if err := cl.Login(); err == nil {
 			// If login is succesful we return the user to bind the MAC address
 			slog.With("domain", d).Debug("Login successfull")
-			return user
+			return user, d.Id
 		}
 		slog.With("domain", d).Debug("Login failed")
 	}
@@ -114,11 +116,11 @@ func login() string {
 		}
 
 		slog.With("domain", d).Debug("Successfully logged in")
-		return user
+		return user, d.Id
 	}
 
 	log.Fatal("The user can't be autenticated")
-	return "" // unreachable code
+	return "", "" // unreachable code
 }
 
 func establishLdapConnection(d *config.LdapDomain) (*ldap.Conn, error) {
