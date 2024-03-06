@@ -64,7 +64,7 @@ func initComunication() {
 
 func handleComunication() {
 	slog.With("socketAdd: ", socket.Addr().String()).
-		Info("Listening for new comunication on socket: ")
+		Info("Listening for new comunication on socket.")
 
 	for {
 		conn, err := socket.Accept()

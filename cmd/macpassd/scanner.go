@@ -18,7 +18,7 @@ import (
 func scanNetwork() {
 	conf := config.Get()
 	network := net.IPNet{IP: net.ParseIP(conf.Network.Ip), Mask: net.IPMask(net.ParseIP(conf.Network.Mask))}
-	slog.With("ip", network.IP, "mask", network.Mask).Debug("Scanning network")
+	slog.With("ip", network.IP.String(), "mask", network.Mask.String()).Debug("Scanning network")
 
 	// get arptable
 	path := "/proc/net/arp"
@@ -51,7 +51,7 @@ func scanNetwork() {
 			} else {
 
 				ip, mac, err := parseArpLine(line, hwPos)
-				slog.With("ip", ip, "mac", mac, "err", err).Debug("Line parsed")
+				slog.With("ip", ip.String(), "mac", mac.String(), "err", err).Debug("Line parsed")
 
 				if err != nil {
 					slog.With("line", string(line), "err", err).
@@ -60,6 +60,10 @@ func scanNetwork() {
 					isInSubnet(ip, network) {
 					slog.With("ip", ip, "mac", mac).Debug("Mac is not empty. Found ip in the subnet. Binding to mac")
 					registration.AddIpToMac(ip, mac)
+
+					// TODO:
+					// We need to check if multiples mac address have the same ip. Or
+					// if an ip taken and another host have the same ip in the OldIps
 				}
 			}
 			line = line[:0]

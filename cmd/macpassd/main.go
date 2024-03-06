@@ -86,6 +86,8 @@ func startDaemon() {
 	}
 }
 
+// This functions delete all the old entries. An old entry is a registration
+// that have the connection time expired.
 func deleteOldEntries() {
 	oldEntries := registration.GetOldEntries()
 
@@ -97,9 +99,14 @@ func deleteOldEntries() {
 }
 
 // If a host change the ip in the registration there will be 2 ips. But
-// one of them does not repond and could be take by another host. So if a host
+// one of them does not respond and could be take by another host. So if a host
 // have multiples ips we check every ip and if at least one respond we remove
 // the others.
+//
+// We can't simply removed them from the map because the arp cache still has
+// the old ips binded to the mac address of the host if they are not taken by
+// others. So if we remove the ip, the function scanNetwork() insert the ip
+// again in the map causing a lot of logs. We move the ips in the old_ip field
 //
 // This function does not remove the entry and does not remove the ips if none
 // of them respond
@@ -124,12 +131,14 @@ func deleteOldIps() {
 			}
 
 			for _, ip := range ipsThatDidNotAnswered {
-				registration.RemoveIP(e, ip)
+				registration.SetOldIP(e, ip)
 			}
 		}
 	}
 }
 
+// If a host goes offline we wait for a period of DisconnectionTime and if it
+// does not respond we delete him
 func deleteDisconnected() {
 	entries := registration.GetAllEntries()
 

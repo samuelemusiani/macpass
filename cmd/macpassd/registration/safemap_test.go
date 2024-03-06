@@ -15,7 +15,7 @@ func TestAddRemove(t *testing.T) {
 	// hour, ms := time.Hour, time.Millisecond
 	mac := "08:7d:bb:7a:cb:d0"
 	r := Registration{Id: 100, User: "user0",
-		Mac: mac, Ips: []net.IP{net.IPv4(1, 2, 3, 4)},
+		Mac: mac, Ips: []net.IP{net.IPv4(1, 2, 3, 4)}, OldIps: []net.IP{},
 		Start: time.Now(), End: time.Now().Add(hour), IsDown: false}
 
 	m.add(r)
@@ -36,7 +36,7 @@ func TestAddIP(t *testing.T) {
 	// hour, ms := time.Hour, time.Millisecond
 	mac := "08:7d:bb:7a:cb:d0"
 	r := Registration{Id: 100, User: "user0",
-		Mac: mac, Ips: []net.IP{ip1},
+		Mac: mac, Ips: []net.IP{ip1}, OldIps: []net.IP{},
 		Start: time.Now(), End: time.Now().Add(hour), IsDown: false}
 
 	m.add(r)

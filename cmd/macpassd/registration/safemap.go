@@ -29,13 +29,15 @@ func (m *safeMap) remove(mac string) {
 	m.mu.Unlock()
 }
 
+// This function adds the ip to the registration associated with the mac address
+// in the m map. If the ip is in the OldIPs files nothing is done
 func (m *safeMap) addIp(mac string, ip net.IP) {
 	_, present := m.v[mac]
 	if present {
 		m.mu.Lock()
 		val := m.v[mac]
 
-		if !isIpPrenset(val.Ips, ip) {
+		if !isIpPrenset(val.Ips, ip) && !isIpPrenset(val.OldIps, ip) {
 			val.Ips = append(val.Ips, ip) //Need to check for duplicates
 			slog.With("registration", val).
 				Info("The registration is been updated on the map")

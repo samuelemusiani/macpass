@@ -21,6 +21,7 @@ type Registration struct {
 	User     string
 	Mac      string
 	Ips      []net.IP
+	OldIps   []net.IP
 	Start    time.Time
 	End      time.Time
 	LastPing time.Time
@@ -58,7 +59,7 @@ func Init() {
 func AddRequest(newRequest comunication.Request) (r Registration) {
 	r = Registration{Id: ids, User: newRequest.User, Mac: newRequest.Mac,
 		Start: time.Now(), End: time.Now().Add(newRequest.Duration),
-		Ips: []net.IP{}, LastPing: time.Now(), IsDown: false}
+		Ips: []net.IP{}, OldIps: []net.IP{}, LastPing: time.Now(), IsDown: false}
 
 	ids++
 
@@ -85,8 +86,10 @@ func Remove(r Registration) {
 	currentMap.remove(r.Mac)
 }
 
+// Old entries are registration on the hashmap that have the connection time
+// expired.
 func GetOldEntries() (oldEntries []Registration) {
-	slog.Debug("Getting old entries")
+	slog.Debug("Getting old entries from map")
 
 	// Get from map
 	for _, reg := range currentMap.v {
@@ -99,6 +102,8 @@ func GetOldEntries() (oldEntries []Registration) {
 	return
 }
 
+// This function adds the ip to the registration associated with the mac address.
+// If the ip is in the Ips or OldIps fields nothing is done
 func AddIpToMac(ip net.IP, mac net.HardwareAddr) {
 	slog.With("ip", ip, "mac", mac).Debug("Binding ip to mac")
 	currentMap.addIp(mac.String(), ip)
@@ -142,6 +147,8 @@ func SetHostUp(e Registration) {
 	currentMap.mu.Unlock()
 }
 
+// This function removes the ip form the Ips field of a registration and save
+// the new registration to the hashmap.
 func RemoveIP(e Registration, ip net.IP) {
 	newIps := make([]net.IP, 0)
 
@@ -153,6 +160,27 @@ func RemoveIP(e Registration, ip net.IP) {
 
 	currentMap.mu.Lock()
 	e.Ips = newIps
+	currentMap.v[e.Mac] = e
+	currentMap.mu.Unlock()
+}
+
+// This function removes the ip form the Ips field of a registration, move the
+// ip to the OldIp field and save the new registration to the hashmap.
+func SetOldIP(e Registration, ip net.IP) {
+	newIps := make([]net.IP, 0)
+	oldIps := make([]net.IP, 0)
+
+	for _, i := range e.Ips {
+		if !i.Equal(ip) {
+			newIps = append(newIps, i)
+		} else {
+			oldIps = append(e.OldIps, i)
+		}
+	}
+
+	currentMap.mu.Lock()
+	e.Ips = newIps
+	e.OldIps = oldIps
 	currentMap.v[e.Mac] = e
 	currentMap.mu.Unlock()
 }
