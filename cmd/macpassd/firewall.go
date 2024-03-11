@@ -8,42 +8,66 @@ import (
 	"github.com/musianisamuele/macpass/cmd/macpassd/registration"
 )
 
-var ipTable *iptables.IPTables
+var ip4Table *iptables.IPTables
+var ip6Table *iptables.IPTables
 
 func initIptables() {
 	slog.Info("Initializing iptables")
 
 	var err error
-	ipTable, err = iptables.NewWithProtocol(iptables.ProtocolIPv4)
+	ip4Table, err = iptables.NewWithProtocol(iptables.ProtocolIPv4)
 	if err != nil {
-		slog.With("error", err).Error("Failing creating iptables object")
+		slog.With("error", err).Error("Failing creating iptables object for IPv4")
+		os.Exit(3)
+	}
+
+	ip6Table, err = iptables.NewWithProtocol(iptables.ProtocolIPv6)
+	if err != nil {
+		slog.With("error", err).Error("Failing creating iptables object for IPv6")
 		os.Exit(3)
 	}
 
 	// We need to clear the iptable table in order to avoid previus entries
-	err = ipTable.ClearAll()
+	err = ip4Table.ClearAll()
 	if err != nil {
-		slog.With("error", err).Error("Failing clearing iptables rules")
+		slog.With("error", err).Error("Failing clearing iptables rules for IPv4")
+		os.Exit(3)
+	}
+
+	err = ip6Table.ClearAll()
+	if err != nil {
+		slog.With("error", err).Error("Failing clearing iptables rules for IPv6")
 		os.Exit(3)
 	}
 
 	// The default rule of the firewall is deny all connections
 	// Insert is used in case the iptables is not flush and there are still
 	// entries that could compromise the security of the program
-	err = ipTable.Insert("filter", "FORWARD", 1, []string{"-i", "eth1", "-o", "eth0",
+	err = ip4Table.Insert("filter", "FORWARD", 1, []string{"-i", "eth1", "-o", "eth0",
 		"-j", "DROP"}...)
 	if err != nil {
-		slog.With("error", err).Error("Inserting default deny rule on iptable")
+		slog.With("error", err).Error("Inserting default deny rule on iptable for IPv4")
+		os.Exit(3)
+	}
+
+	err = ip6Table.Insert("filter", "FORWARD", 1, []string{"-i", "eth1", "-o", "eth0",
+		"-j", "DROP"}...)
+	if err != nil {
+		slog.With("error", err).Error("Inserting default deny rule on iptable for IPv6")
 		os.Exit(3)
 	}
 }
 
 func allowNewEntryOnFirewall(r registration.Registration) {
-	err := ipTable.InsertUnique("filter", "FORWARD", 1, []string{"-i", "eth1", "-o", "eth0",
+	err0 := ip4Table.InsertUnique("filter", "FORWARD", 1, []string{"-i", "eth1", "-o", "eth0",
 		"-m", "mac", "--mac-source", r.Mac, "-j", "ACCEPT"}...)
 
-	if err != nil {
-		slog.With("registration", r, "error", err).Error("Inserting registration")
+	err1 := ip6Table.InsertUnique("filter", "FORWARD", 1, []string{"-i", "eth1", "-o", "eth0",
+		"-m", "mac", "--mac-source", r.Mac, "-j", "ACCEPT"}...)
+
+	if err0 != nil || err1 != nil {
+		slog.With("registration", r, "error ipv4", err0, "error IPv6", err1).
+			Error("Inserting registration")
 	} else {
 		slog.With("registration", r).Info("ADDED")
 		// entriesLogger.Println("ADDED: ", r)
@@ -51,11 +75,16 @@ func allowNewEntryOnFirewall(r registration.Registration) {
 }
 
 func deleteEntryFromFirewall(r registration.Registration) {
-	err := ipTable.Delete("filter", "FORWARD", []string{"-i", "eth1", "-o",
+	err0 := ip4Table.Delete("filter", "FORWARD", []string{"-i", "eth1", "-o",
 		"eth0", "-m", "mac", "--mac-source", r.Mac, "-j", "ACCEPT"}...)
 
-	if err != nil {
-		slog.With("registration", r, "error", err).Error("Removing registration")
+	err1 := ip6Table.Delete("filter", "FORWARD", []string{"-i", "eth1", "-o",
+		"eth0", "-m", "mac", "--mac-source", r.Mac, "-j", "ACCEPT"}...)
+
+	if err0 != nil || err1 != nil {
+		slog.With("registration", r, "error ipv4", err0, "error IPv6", err1).
+			Error("Removing registration")
+
 	} else {
 		slog.With("registration", r).Info("REMOVED")
 		// entriesLogger.Println("REMOVED: ", r)
