@@ -12,8 +12,8 @@ type Socket struct {
 }
 
 type Network struct {
-	Ip      string `json:"ip"`
-	Mask    string `json:"subnetmask"`
+	IP4     string `json:"ip4"`
+	IP6     string `json:"ip6"`
 	Timeout uint64 `json:"timeout"`
 	IFace   string `json:"inInterface"`
 }

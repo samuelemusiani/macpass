@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"log/slog"
 	"net"
 	"time"
@@ -14,9 +15,21 @@ import (
 func scanNetwork() {
 	conf := config.Get()
 
-	network := net.IPNet{IP: net.ParseIP(conf.Network.Ip), Mask: net.IPMask(net.ParseIP(conf.Network.Mask))}
+	_, network4, err := net.ParseCIDR(conf.Network.IP4)
+	if err != nil {
+		slog.With("net", network4, "err", err).
+			Error("Could not parse CIDR for IPv4 into a network")
+		log.Fatal("Could not continue")
+	}
 
-	slog.With("ip", network.IP.String(), "mask", network.Mask.String()).
+	_, network6, err := net.ParseCIDR(conf.Network.IP4)
+	if err != nil {
+		slog.With("net", network4, "err", err).
+			Error("Could not parse CIDR for IPv6 into a network")
+		log.Fatal("Could not continue")
+	}
+
+	slog.With("IPv4", network4.String(), "IPv6", network4.String()).
 		Debug("Listening for neighbor updates")
 
 	nUpdate := make(chan netlink.NeighUpdate)
@@ -28,7 +41,7 @@ func scanNetwork() {
 		nu := <-nUpdate
 		n := nu.Neigh
 
-		if !isInSubnet(n.IP, network) {
+		if !isInSubnet(n.IP, network4) && !isInSubnet(n.IP, network6) {
 			continue
 		}
 
@@ -46,7 +59,7 @@ func scanNetwork() {
 	}
 }
 
-func isInSubnet(ip net.IP, network net.IPNet) bool {
+func isInSubnet(ip net.IP, network *net.IPNet) bool {
 	return ip.Mask(network.Mask).Equal(network.IP.Mask(network.Mask))
 }
 
