@@ -1,92 +1,49 @@
 package main
 
 import (
-	"bytes"
-	"fmt"
 	"log/slog"
 	"net"
-	"os"
-	"reflect"
-	"strings"
 	"time"
 
 	"github.com/j-keck/arping"
 	"github.com/musianisamuele/macpass/cmd/macpassd/config"
 	"github.com/musianisamuele/macpass/cmd/macpassd/registration"
+	"github.com/vishvananda/netlink"
 )
 
 func scanNetwork() {
 	conf := config.Get()
+
 	network := net.IPNet{IP: net.ParseIP(conf.Network.Ip), Mask: net.IPMask(net.ParseIP(conf.Network.Mask))}
-	slog.With("ip", network.IP.String(), "mask", network.Mask.String()).Debug("Scanning network")
 
-	// get arptable
-	path := "/proc/net/arp"
-	slog.With("path", path).Debug("Reading arp cache file")
-	arpTable, err := os.ReadFile(path)
-	if err != nil {
-		slog.With("path", path, "err", err).Error("Can't read arp table. No logs can be provided for network devices")
-	}
+	slog.With("ip", network.IP.String(), "mask", network.Mask.String()).
+		Debug("Listening for neighbor updates")
 
-	emptyMac, _ := net.ParseMAC("00:00:00:00:00:00")
-	line := []byte{}
+	nUpdate := make(chan netlink.NeighUpdate)
+	done := make(chan struct{})
 
-	hwPos := -1
-	isFirstLine := true
-	for _, data := range arpTable {
-		if !bytes.Equal([]byte{data}, []byte("\n")) {
-			line = append(line, data)
+	netlink.NeighSubscribe(nUpdate, done)
+
+	for {
+		nu := <-nUpdate
+		n := nu.Neigh
+
+		if !isInSubnet(n.IP, network) {
+			continue
+		}
+
+		// If the state is Reachable or Stale we can assume that the MAC address
+		// is not empy
+
+		if n.State == netlink.NUD_REACHABLE || n.State == netlink.NUD_STALE {
+			slog.With("IP", n.IP, "MAC", n.HardwareAddr).
+				Debug("Received a REACHABLE or STALE update from neighbor")
+			registration.AddIpToMac(n.IP, n.HardwareAddr)
 		} else {
-			slog.With("line", string(line)).Debug("Get arp file line")
-
-			if isFirstLine {
-				hwPos = strings.Index(string(line), "HW address")
-				if hwPos == -1 {
-					slog.With("line", string(line), "substring", "HW address").
-						Error("Substring cannot be found. Arp tables is not right")
-					break
-				}
-				slog.With("hwPos", hwPos).Debug("Found 'HW address' start")
-				isFirstLine = false
-			} else {
-
-				ip, mac, err := parseArpLine(line, hwPos)
-				slog.With("ip", ip.String(), "mac", mac.String(), "err", err).Debug("Line parsed")
-
-				if err != nil {
-					slog.With("line", string(line), "err", err).
-						Error("Error parsing arp line")
-				} else if !reflect.DeepEqual(mac.String(), emptyMac.String()) &&
-					isInSubnet(ip, network) {
-					slog.With("ip", ip, "mac", mac).Debug("Mac is not empty. Found ip in the subnet. Binding to mac")
-					registration.AddIpToMac(ip, mac)
-
-					// TODO:
-					// We need to check if multiples mac address have the same ip. Or
-					// if an ip taken and another host have the same ip in the OldIps
-				}
-			}
-			line = line[:0]
+			slog.With("IP", n.IP, "MAC", n.HardwareAddr).
+				Debug("Received an update from neighbor that will not be hanled")
 		}
 	}
-}
-
-// line is the all line of the arp table
-// hwPos the the number of the first byte that contains the mac address
-func parseArpLine(line []byte, hwPos int) (net.IP, net.HardwareAddr, error) {
-	l := len(line)
-	if hwPos >= l {
-		return nil, nil, fmt.Errorf("hwPos is greater than the line length")
-	}
-	if hwPos <= 0 {
-		return nil, nil, fmt.Errorf("hwPos is too small")
-	}
-
-	// forgive me for this
-	ip := net.ParseIP(strings.TrimSpace(string(line[0:15])))
-	mac, err := net.ParseMAC(string(line[hwPos : hwPos+17]))
-
-	return ip, mac, err
 }
 
 func isInSubnet(ip net.IP, network net.IPNet) bool {
