@@ -15,6 +15,8 @@ type Network struct {
 	Ip      string `json:"ip"`
 	Mask    string `json:"subnetmask"`
 	Timeout uint64 `json:"timeout"`
+	IFace   string `json:"inInterface"`
+	OFace   string `json:"outInterface"`
 }
 
 type Config struct {
