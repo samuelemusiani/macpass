@@ -10,7 +10,6 @@ network:
   timeout: 1000
 
   inInterface: eth0
-  outInterface: eth1
 
 # How much time to wait to do the next network scan and old entries scan. In
 # seconds

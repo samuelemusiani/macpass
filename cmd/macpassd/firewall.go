@@ -9,10 +9,12 @@ import (
 	"github.com/musianisamuele/macpass/cmd/macpassd/registration"
 )
 
-var ip4Table *iptables.IPTables
-var ip6Table *iptables.IPTables
+var (
+	ip4Table *iptables.IPTables
+	ip6Table *iptables.IPTables
 
-var conf *config.Config
+	conf *config.Config
+)
 
 func initIptables() {
 	slog.Info("Initializing iptables")
@@ -49,7 +51,7 @@ func initIptables() {
 	// Insert is used in case the iptables is not flush and there are still
 	// entries that could compromise the security of the program
 	err = ip4Table.Insert("filter", "FORWARD", 1, []string{"-i",
-		conf.Network.IFace, "-o", conf.Network.OFace, "-j", "DROP"}...)
+		conf.Network.IFace, "-j", "DROP"}...)
 
 	if err != nil {
 		slog.With("error", err).Error("Inserting default deny rule on iptable for IPv4")
@@ -57,7 +59,7 @@ func initIptables() {
 	}
 
 	err = ip6Table.Insert("filter", "FORWARD", 1, []string{"-i",
-		conf.Network.IFace, "-o", conf.Network.OFace, "-j", "DROP"}...)
+		conf.Network.IFace, "-j", "DROP"}...)
 
 	if err != nil {
 		slog.With("error", err).Error("Inserting default deny rule on iptable for IPv6")
@@ -67,11 +69,11 @@ func initIptables() {
 
 func allowNewEntryOnFirewall(r registration.Registration) {
 	err0 := ip4Table.InsertUnique("filter", "FORWARD", 1, []string{"-i",
-		conf.Network.IFace, "-o", conf.Network.OFace, "-m", "mac", "--mac-source",
+		conf.Network.IFace, "-m", "mac", "--mac-source",
 		r.Mac, "-j", "ACCEPT"}...)
 
 	err1 := ip6Table.InsertUnique("filter", "FORWARD", 1, []string{"-i",
-		conf.Network.IFace, "-o", conf.Network.OFace, "-m", "mac", "--mac-source",
+		conf.Network.IFace, "-m", "mac", "--mac-source",
 		r.Mac, "-j", "ACCEPT"}...)
 
 	if err0 != nil || err1 != nil {
@@ -85,10 +87,10 @@ func allowNewEntryOnFirewall(r registration.Registration) {
 
 func deleteEntryFromFirewall(r registration.Registration) {
 	err0 := ip4Table.Delete("filter", "FORWARD", []string{"-i", conf.Network.IFace,
-		"-o", conf.Network.OFace, "-m", "mac", "--mac-source", r.Mac, "-j", "ACCEPT"}...)
+		"-m", "mac", "--mac-source", r.Mac, "-j", "ACCEPT"}...)
 
 	err1 := ip6Table.Delete("filter", "FORWARD", []string{"-i", conf.Network.IFace,
-		"-o", conf.Network.OFace, "-m", "mac", "--mac-source", r.Mac, "-j", "ACCEPT"}...)
+		"-m", "mac", "--mac-source", r.Mac, "-j", "ACCEPT"}...)
 
 	if err0 != nil || err1 != nil {
 		slog.With("registration", r, "error ipv4", err0, "error IPv6", err1).
