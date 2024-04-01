@@ -30,7 +30,7 @@ func scanNetwork() {
 		log.Fatal("Could not continue")
 	}
 
-	slog.With("IPv4", network4.String(), "IPv6", network4.String()).
+	slog.With("IPv4", network4.String(), "IPv6", network6.String()).
 		Debug("Listening for neighbor updates")
 
 	nUpdate := make(chan netlink.NeighUpdate)
@@ -43,6 +43,7 @@ func scanNetwork() {
 		n := nu.Neigh
 
 		if !isInSubnet(n.IP, network4) && !isInSubnet(n.IP, network6) {
+			slog.With("ip", n.IP.String(), "net4", network4.String, "net6", network6.String()).Debug("Ip not in subnet, ignoring")
 			continue
 		}
 
