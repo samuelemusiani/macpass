@@ -34,27 +34,37 @@ func main() {
 }
 
 func login() string {
-	const krb5Conf = `[libdefaults]
-  dns_lookup_realm = true
-  dns_lookup_kdc = true
-  `
-	krbconf, err := krbconfig.NewFromString(krb5Conf)
-	if err != nil {
-		log.Fatal(err)
-	}
+	conf := config.Get()
 
 	user, passwd := input.Credential()
 
-	cl := krbclient.NewWithPassword(strings.Split(user, "@")[0],
-		config.Get().Kerberos.Realm, passwd, krbconf,
-		krbclient.DisablePAFXFAST(config.Get().Kerberos.DisablePAFXFAST))
+	if conf.DummyLogin {
+		log.Println("WARNING: Dummy login is on")
+		if user != passwd {
+			log.Fatal("User and Password are incorrect")
+		}
+		return user
+	} else {
+		const krb5Conf = `[libdefaults]
+  dns_lookup_realm = true
+  dns_lookup_kdc = true
+  `
+		krbconf, err := krbconfig.NewFromString(krb5Conf)
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	if err := cl.Login(); err != nil {
-		log.Fatal(err)
+		cl := krbclient.NewWithPassword(strings.Split(user, "@")[0],
+			conf.Kerberos.Realm, passwd, krbconf,
+			krbclient.DisablePAFXFAST(conf.Kerberos.DisablePAFXFAST))
+
+		if err := cl.Login(); err != nil {
+			log.Fatal(err)
+		}
+
+		// If login is succesful we return the user to bind the MAC address
+		return user
 	}
-
-	// If login is succesful we return the user to bind the MAC address
-	return user
 }
 
 func send(r comunication.Request) {

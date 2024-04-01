@@ -13,6 +13,7 @@ type KerberosConfig struct {
 
 type Config struct {
 	Kerberos          KerberosConfig `json:"kerberos"`
+	DummyLogin        bool           `json:"dummyLogin"`
 	SocketPath        string         `json:"socketPath"`
 	MaxConnectionTime int            `json:"maxConnectionTime"`
 	DBPath            string         `json:"databasePath"`
