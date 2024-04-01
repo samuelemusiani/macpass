@@ -8,6 +8,8 @@ require (
 	github.com/j-keck/arping v1.0.3
 	github.com/jcmturner/gokrb5/v8 v8.4.4
 	github.com/mattn/go-sqlite3 v1.14.17
+	github.com/mehrdadrad/ping v0.2.5
+	github.com/vishvananda/netlink v1.1.0
 	golang.org/x/term v0.13.0
 	gotest.tools/v3 v3.5.1
 	internal/comunication v1.0.0
@@ -26,7 +28,6 @@ require (
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/stretchr/testify v1.8.4 // indirect
-	github.com/vishvananda/netlink v1.1.0 // indirect
 	github.com/vishvananda/netns v0.0.0-20191106174202-0a2b9b5464df // indirect
 	golang.org/x/crypto v0.13.0 // indirect
 	golang.org/x/net v0.15.0 // indirect

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/j-keck/arping"
+	"github.com/mehrdadrad/ping"
 	"github.com/musianisamuele/macpass/cmd/macpassd/config"
 	"github.com/musianisamuele/macpass/cmd/macpassd/registration"
 	"github.com/vishvananda/netlink"
@@ -47,7 +48,6 @@ func scanNetwork() {
 
 		// If the state is Reachable or Stale we can assume that the MAC address
 		// is not empy
-
 		if n.State == netlink.NUD_REACHABLE || n.State == netlink.NUD_STALE {
 			slog.With("IP", n.IP, "MAC", n.HardwareAddr).
 				Debug("Received a REACHABLE or STALE update from neighbor")
@@ -67,43 +67,44 @@ func isStillConnected(e registration.Registration) bool {
 	arping.SetTimeout(1 * time.Second) // should be put in config
 
 	for _, ip := range e.Ips {
-		mac, _, err := arping.Ping(ip)
-		if err != nil {
-			slog.With("ip", ip, "err", err).Debug("error during arping")
-		} else {
+		if ip.To4() != nil { // Is an IPv4
+			mac, _, err := arping.Ping(ip)
+			if err != nil {
+				slog.With("ip", ip, "err", err).Debug("error during arping")
+			} else {
+				if e.Mac != mac.String() {
+					// In this case another host has reponded to the arping. It is possible
+					// that multiples hosts have the same ip or that the previous host has
+					// changed ip and another host has now his old ip. We assume the first
+					// one
+					slog.With("registration", e, "new mac", mac.String()).Debug("Different mac responded to arping")
 
-			if e.Mac != mac.String() {
-				// in this case another host has reponded to the arping. It is possible
-				// that multiples hosts have the same ip or that the previous host has
-				// changed ip and another host has now his old ip. We assume the first
-				// one
+					// TODO
 
-				// we need to delete old ips from the entries in order to perform this
-				// check correctly
-				slog.With("registration", e, "new mac", mac.String()).Debug("Different mac responded to arping")
-
-				// we delete the newest registration with the ip
-				entries := registration.GetAllEntries()
-				valid := -1
-				for i, e := range entries {
-					if isIpPrenset(e.Ips, ip) {
-						if valid == -1 {
-							valid = i
-						} else if e.Start.Compare(entries[valid].Start) == -1 {
-							valid = i
-						}
-					}
+					return false
 				}
+				return true
+			}
+		} else { // Is an IPv6
+			// To check IPv6 we try to ping the host
+			p, err := ping.New(ip.String())
+			if err != nil {
+				slog.With("ip", ip.String(), "err", err).Error("Could not construct ping object")
+				continue
+			}
+			p.SetCount(1)
 
-				deleteEntryFromFirewall(entries[valid])
-				registration.Remove(entries[valid])
-
-				// If we set up a mail server we can send a mail explaining why the
-				// connection is dropped
-				return false
+			r, err := p.Run()
+			if err != nil {
+				slog.With("ip", ip.String(), "err", err).Error("Could not run ping to IPv6")
+				continue
 			}
 
-			return true
+			for pr := range r {
+				if pr.Err != nil {
+					return true
+				}
+			}
 		}
 	}
 
