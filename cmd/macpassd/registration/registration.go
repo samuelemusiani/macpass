@@ -105,7 +105,7 @@ func GetOldEntries() (oldEntries []Registration) {
 // This function adds the ip to the registration associated with the mac address.
 // If the ip is in the Ips or OldIps fields nothing is done
 func AddIpToMac(ip net.IP, mac net.HardwareAddr) {
-	slog.With("ip", ip, "mac", mac).Debug("Binding ip to mac")
+	slog.With("ip", ip, "mac", mac.String()).Debug("Binding ip to mac")
 	currentMap.addIp(mac.String(), ip)
 
 	// TODO: Add to db
