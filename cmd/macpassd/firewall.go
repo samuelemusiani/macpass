@@ -35,13 +35,13 @@ func initIptables() {
 	}
 
 	// We need to clear the iptable table in order to avoid previus entries
-	err = ip4Table.ClearAll()
+	err = ip4Table.ClearChain("filter", "FORWARD")
 	if err != nil {
 		slog.With("error", err).Error("Failing clearing iptables rules for IPv4")
 		os.Exit(3)
 	}
 
-	err = ip6Table.ClearAll()
+	err = ip6Table.ClearChain("filter", "FORWARD")
 	if err != nil {
 		slog.With("error", err).Error("Failing clearing iptables rules for IPv6")
 		os.Exit(3)
