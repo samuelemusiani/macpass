@@ -23,7 +23,7 @@ func scanNetwork() {
 		log.Fatal("Could not continue")
 	}
 
-	_, network6, err := net.ParseCIDR(conf.Network.IP4)
+	_, network6, err := net.ParseCIDR(conf.Network.IP6)
 	if err != nil {
 		slog.With("net", network4, "err", err).
 			Error("Could not parse CIDR for IPv6 into a network")
