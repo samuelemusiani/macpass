@@ -89,8 +89,6 @@ func Remove(r Registration) {
 // Old entries are registration on the hashmap that have the connection time
 // expired.
 func GetOldEntries() (oldEntries []Registration) {
-	slog.Debug("Getting old entries from map")
-
 	// Get from map
 	for _, reg := range currentMap.v {
 		if time.Now().Sub(reg.End) >= 0 {
@@ -112,8 +110,6 @@ func AddIpToMac(ip net.IP, mac net.HardwareAddr) {
 }
 
 func GetAllEntries() (entries []Registration) {
-	slog.Debug("Getting all entries")
-
 	// Get from map
 	for _, reg := range currentMap.v {
 		entries = append(entries, reg)
