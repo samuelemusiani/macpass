@@ -77,7 +77,7 @@ func dbInsertRegistration(db *sql.DB, r Registration) {
 	const query = `insert into Log(User, MAC, IPs, startTime, endTime, isDown) values(?, ?, ?, ?, ?, false)`
 	_, err := db.Exec(query, r.User, r.Mac, convertIPsToBytes(r.Ips), r.Start, r.End)
 	if err != nil {
-		slog.With("db", db, "query", query, "registration", r, "err", err).
+		slog.With("db", db, "query", query, "registration", r.String(), "err", err).
 			Error("Inserting registration into database")
 	}
 }

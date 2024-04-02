@@ -77,10 +77,10 @@ func allowNewEntryOnFirewall(r registration.Registration) {
 		r.Mac, "-j", "ACCEPT"}...)
 
 	if err0 != nil || err1 != nil {
-		slog.With("registration", r, "error ipv4", err0, "error IPv6", err1).
+		slog.With("registration", r.String(), "error ipv4", err0, "error IPv6", err1).
 			Error("Inserting registration")
 	} else {
-		slog.With("registration", r).Info("ADDED")
+		slog.With("registration", r.String()).Info("ADDED")
 		// entriesLogger.Println("ADDED: ", r)
 	}
 }
@@ -93,11 +93,11 @@ func deleteEntryFromFirewall(r registration.Registration) {
 		"-m", "mac", "--mac-source", r.Mac, "-j", "ACCEPT"}...)
 
 	if err0 != nil || err1 != nil {
-		slog.With("registration", r, "error ipv4", err0, "error IPv6", err1).
+		slog.With("registration", r.String(), "error ipv4", err0, "error IPv6", err1).
 			Error("Removing registration")
 
 	} else {
-		slog.With("registration", r).Info("REMOVED")
+		slog.With("registration", r.String()).Info("REMOVED")
 		// entriesLogger.Println("REMOVED: ", r)
 	}
 }

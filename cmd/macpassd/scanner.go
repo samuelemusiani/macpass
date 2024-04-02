@@ -67,7 +67,7 @@ func isInSubnet(ip net.IP, network *net.IPNet) bool {
 func isStillConnected(e registration.Registration) bool {
 	arping.SetTimeout(1 * time.Second) // should be put in config
 
-	slog.With("Registration", e).Debug("Checking registration")
+	slog.With("Registration", e.String()).Debug("Checking registration")
 	for _, ip := range e.Ips {
 		slog.With("ip", ip).Debug("Checking ip")
 		if ip.To4() != nil { // Is an IPv4
@@ -80,7 +80,7 @@ func isStillConnected(e registration.Registration) bool {
 					// that multiples hosts have the same ip or that the previous host has
 					// changed ip and another host has now his old ip. We assume the first
 					// one
-					slog.With("registration", e, "new mac", mac.String()).Debug("Different mac responded to arping")
+					slog.With("registration", e.String(), "new mac", mac.String()).Debug("Different mac responded to arping")
 
 					// TODO
 

@@ -5,6 +5,7 @@ package registration
 
 import (
 	"database/sql"
+	"fmt"
 	"internal/comunication"
 	"log"
 	"log/slog"
@@ -63,7 +64,7 @@ func AddRequest(newRequest comunication.Request) (r Registration) {
 
 	ids++
 
-	slog.With("registration", r).Debug("New registration will be added")
+	slog.With("registration", r.String()).Debug("New registration will be added")
 
 	currentMap.add(r)
 
@@ -76,13 +77,13 @@ func AddRequest(newRequest comunication.Request) (r Registration) {
 }
 
 func AddRegistrationToMapFromDB(r Registration) {
-	slog.With("registration", r).Debug("Registration from DB will be added")
+	slog.With("registration", r.String()).Debug("Registration from DB will be added")
 	currentMap.add(r)
 	return
 }
 
 func Remove(r Registration) {
-	slog.With("registration", r).Debug("Removing registration")
+	slog.With("registration", r.String()).Debug("Removing registration")
 	currentMap.remove(r.Mac)
 }
 
@@ -188,4 +189,10 @@ func GetOldStateFromDB() []Registration {
 	}
 
 	return dbGetActive(currentDB)
+}
+
+func (e *Registration) String() string {
+	f := time.TimeOnly
+	return fmt.Sprintf("{Id: %d, User: %s, Mac: %s, IPs: %v, OldIps: %v, Start: %s, End: %s, LastPing: %s, IsDown: %t}",
+		e.Id, e.User, e.Mac, e.Ips, e.OldIps, e.Start.Format(f), e.End.Format(f), e.LastPing.Format(f), e.IsDown)
 }

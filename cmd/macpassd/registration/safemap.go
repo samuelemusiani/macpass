@@ -39,7 +39,7 @@ func (m *safeMap) addIp(mac string, ip net.IP) {
 
 		if !isIpPrenset(val.Ips, ip) && !isIpPrenset(val.OldIps, ip) {
 			val.Ips = append(val.Ips, ip) //Need to check for duplicates
-			slog.With("registration", val).
+			slog.With("registration", val.String()).
 				Info("The registration is been updated on the map")
 		}
 
