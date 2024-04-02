@@ -36,35 +36,43 @@ func main() {
 func login() string {
 	conf := config.Get()
 
-	mail, passwd := input.Credential()
+	mail := input.Mail()
 	user := strings.Split(mail, "@")[0]
 
-	if conf.DummyLogin {
-		log.Println("WARNING: Dummy login is on")
-		if user != passwd {
-			log.Fatal("User and Password are incorrect")
-		}
-		return mail
-	} else {
-		const krb5Conf = `[libdefaults]
+	for range 3 {
+		passwd := input.Password()
+
+		if conf.DummyLogin {
+			fmt.Println("WARNING: Dummy login is on")
+			if user != passwd {
+				fmt.Println("ERROR: User or password are incorrect")
+				continue
+			}
+			return mail
+		} else {
+			const krb5Conf = `[libdefaults]
   dns_lookup_realm = true
   dns_lookup_kdc = true
   `
-		krbconf, err := krbconfig.NewFromString(krb5Conf)
-		if err != nil {
-			log.Fatal(err)
+			krbconf, err := krbconfig.NewFromString(krb5Conf)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			cl := krbclient.NewWithPassword(user, conf.Kerberos.Realm, passwd, krbconf,
+				krbclient.DisablePAFXFAST(conf.Kerberos.DisablePAFXFAST))
+
+			if err := cl.Login(); err != nil {
+				fmt.Println("Error: ", err)
+				continue
+			}
+
+			// If login is succesful we return the user to bind the MAC address
+			return mail
 		}
-
-		cl := krbclient.NewWithPassword(user, conf.Kerberos.Realm, passwd, krbconf,
-			krbclient.DisablePAFXFAST(conf.Kerberos.DisablePAFXFAST))
-
-		if err := cl.Login(); err != nil {
-			log.Fatal(err)
-		}
-
-		// If login is succesful we return the user to bind the MAC address
-		return mail
 	}
+	log.Fatal("Could not authenticate")
+	return ""
 }
 
 func send(r comunication.Request) {

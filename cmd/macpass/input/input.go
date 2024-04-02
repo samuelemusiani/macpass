@@ -21,23 +21,29 @@ import (
 	"golang.org/x/term"
 )
 
-func Credential() (string, string) {
+func Mail() string {
 	reader := bufio.NewReader(os.Stdin)
 
-	fmt.Print("Enter Email: ")
-	username, err := reader.ReadString('\n')
-	if err != nil {
-		log.Fatal(err)
+	for {
+		fmt.Print("Enter Email: ")
+		username, err := reader.ReadString('\n')
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		username = strings.TrimSpace(username)
+
+		// Check if the email is valid
+		_, err = mail.ParseAddress(username)
+		if err != nil {
+			fmt.Println("Error: ", err)
+			continue
+		}
+		return username
 	}
+}
 
-	username = strings.TrimSpace(username)
-
-	// Check if the email is valid
-	_, err = mail.ParseAddress(username)
-	if err != nil {
-		log.Fatal(err)
-	}
-
+func Password() string {
 	fmt.Print("Enter Password: ")
 	bytePassword, err := term.ReadPassword(int(syscall.Stdin))
 	if err != nil {
@@ -46,7 +52,7 @@ func Credential() (string, string) {
 	fmt.Println()
 
 	password := string(bytePassword)
-	return username, strings.TrimSpace(password)
+	return strings.TrimSpace(password)
 }
 
 func Mac(user string) string {
