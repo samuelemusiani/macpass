@@ -67,7 +67,9 @@ func isInSubnet(ip net.IP, network *net.IPNet) bool {
 func isStillConnected(e registration.Registration) bool {
 	arping.SetTimeout(1 * time.Second) // should be put in config
 
+	slog.With("Registration", e).Debug("Checking registration")
 	for _, ip := range e.Ips {
+		slog.With("ip", ip).Debug("Checking ip")
 		if ip.To4() != nil { // Is an IPv4
 			mac, _, err := arping.Ping(ip)
 			if err != nil {
