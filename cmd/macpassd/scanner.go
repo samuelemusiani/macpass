@@ -1,14 +1,16 @@
 package main
 
 import (
+	"bytes"
+	"fmt"
 	"log"
 	"log/slog"
 	"net"
+	"os/exec"
 	"strings"
 	"time"
 
 	"github.com/j-keck/arping"
-	"github.com/mehrdadrad/ping"
 	"github.com/musianisamuele/macpass/cmd/macpassd/config"
 	"github.com/musianisamuele/macpass/cmd/macpassd/registration"
 	"github.com/vishvananda/netlink"
@@ -116,30 +118,31 @@ func isIPStillConnected(ip net.IP) bool {
 
 	// Is an IPv6
 	// To check IPv6 we try to ping the host
-	p, err := ping.New(ip.String())
-	if err != nil {
-		slog.With("ip", ip.String(), "err", err).Error("Could not construct ping object")
-		return false
-	}
-	p.SetPrivilegedICMP(false)
-	p.SetCount(1)
 
-	r, err := p.Run()
-	if err != nil {
-		slog.With("ip", ip.String(), "err", err).Error("Could not run ping to IPv6")
-		return false
-	}
+	/* From man page on ping:
+	 * If ping does not receive any reply packets at all it will exit with code 1.
+	 * If a packet count and deadline are both specified, and fewer than count
+	 * packets are received by the time the deadline has arrived, it will also
+	 * exit with code 1. On other error it exits with code 2. Otherwise it exits
+	 * with code 0. This makes it possible to use the exit code to see if a host
+	 * is alive or not.
+	 */
 
-	for pr := range r {
-		if pr.Err == nil {
-			slog.With("ip", ip).Debug("IP responded to ping")
-			return true
-		} else if strings.Contains(pr.Err.Error(), "Request timeout") {
-			slog.With("ip", ip, "response", pr).Debug("Error while pinging ip")
-		} else {
-			slog.With("ip", ip, "response", pr).Error("Error while pinging ip")
-		}
+	cmd := exec.Command("sh", "-c", fmt.Sprintf("ping -c 1 -w 1 %s", ip.String()))
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	if err == nil {
+		slog.With("ip", ip).Debug("Host reachable")
+		return true
+	} else if strings.Contains(err.Error(), "1") {
+		slog.With("ip", ip).Debug("Host unreachable")
+		return false
+	} else {
+		slog.With("ip", ip, "err", err.Error()+": "+stderr.String()).Error("During ping")
 	}
-	slog.With("ip", ip).Debug("IP didn't respond to ping")
 	return false
 }

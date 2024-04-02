@@ -8,7 +8,6 @@ require (
 	github.com/j-keck/arping v1.0.3
 	github.com/jcmturner/gokrb5/v8 v8.4.4
 	github.com/mattn/go-sqlite3 v1.14.17
-	github.com/mehrdadrad/ping v0.2.5
 	github.com/vishvananda/netlink v1.1.0
 	golang.org/x/term v0.13.0
 	gotest.tools/v3 v3.5.1
