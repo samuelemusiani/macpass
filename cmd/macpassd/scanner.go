@@ -50,11 +50,11 @@ func listenForNeighbourUpdates() {
 		// If the state is Reachable or Stale we can assume that the MAC address
 		// is not empy
 		if n.State == netlink.NUD_REACHABLE || n.State == netlink.NUD_STALE {
-			slog.With("IP", n.IP, "MAC", n.HardwareAddr).
+			slog.With("IP", n.IP.String(), "MAC", n.HardwareAddr.String()).
 				Debug("Received a REACHABLE or STALE update from neighbor")
 			registration.AddIpToMac(n.IP, n.HardwareAddr)
 		} else {
-			slog.With("IP", n.IP, "MAC", n.HardwareAddr).
+			slog.With("IP", n.IP.String(), "MAC", n.HardwareAddr.String()).
 				Debug("Received an update from neighbor that will not be hanled")
 		}
 	}
