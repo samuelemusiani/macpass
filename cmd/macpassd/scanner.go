@@ -1,139 +1,113 @@
 package main
 
 import (
-	"bytes"
-	"fmt"
+	"log"
 	"log/slog"
 	"net"
-	"os"
-	"reflect"
-	"strings"
 	"time"
 
 	"github.com/j-keck/arping"
+	"github.com/mehrdadrad/ping"
 	"github.com/musianisamuele/macpass/cmd/macpassd/config"
 	"github.com/musianisamuele/macpass/cmd/macpassd/registration"
+	"github.com/vishvananda/netlink"
 )
 
-func scanNetwork() {
+func listenForNeighbourUpdates() {
 	conf := config.Get()
-	network := net.IPNet{IP: net.ParseIP(conf.Network.Ip), Mask: net.IPMask(net.ParseIP(conf.Network.Mask))}
-	slog.With("ip", network.IP.String(), "mask", network.Mask.String()).Debug("Scanning network")
 
-	// get arptable
-	path := "/proc/net/arp"
-	slog.With("path", path).Debug("Reading arp cache file")
-	arpTable, err := os.ReadFile(path)
+	_, network4, err := net.ParseCIDR(conf.Network.IP4)
 	if err != nil {
-		slog.With("path", path, "err", err).Error("Can't read arp table. No logs can be provided for network devices")
+		slog.With("net", network4, "err", err).
+			Error("Could not parse CIDR for IPv4 into a network")
+		log.Fatal("Could not continue")
 	}
 
-	emptyMac, _ := net.ParseMAC("00:00:00:00:00:00")
-	line := []byte{}
+	_, network6, err := net.ParseCIDR(conf.Network.IP6)
+	if err != nil {
+		slog.With("net", network4, "err", err).
+			Error("Could not parse CIDR for IPv6 into a network")
+		log.Fatal("Could not continue")
+	}
 
-	hwPos := -1
-	isFirstLine := true
-	for _, data := range arpTable {
-		if !bytes.Equal([]byte{data}, []byte("\n")) {
-			line = append(line, data)
+	slog.With("IPv4", network4.String(), "IPv6", network6.String()).
+		Debug("Listening for neighbor updates")
+
+	nUpdate := make(chan netlink.NeighUpdate)
+	done := make(chan struct{})
+
+	netlink.NeighSubscribe(nUpdate, done)
+
+	for {
+		nu := <-nUpdate
+		n := nu.Neigh
+
+		if !isInSubnet(n.IP, network4) && !isInSubnet(n.IP, network6) {
+			slog.With("ip", n.IP.String(), "net4", network4.String(), "net6", network6.String()).Debug("Ip not in subnet, ignoring")
+			continue
+		}
+
+		// If the state is Reachable or Stale we can assume that the MAC address
+		// is not empy
+		if n.State == netlink.NUD_REACHABLE || n.State == netlink.NUD_STALE {
+			slog.With("IP", n.IP.String(), "MAC", n.HardwareAddr.String()).
+				Debug("Received a REACHABLE or STALE update from neighbor")
+			registration.AddIpToMac(n.IP, n.HardwareAddr)
 		} else {
-			slog.With("line", string(line)).Debug("Get arp file line")
-
-			if isFirstLine {
-				hwPos = strings.Index(string(line), "HW address")
-				if hwPos == -1 {
-					slog.With("line", string(line), "substring", "HW address").
-						Error("Substring cannot be found. Arp tables is not right")
-					break
-				}
-				slog.With("hwPos", hwPos).Debug("Found 'HW address' start")
-				isFirstLine = false
-			} else {
-
-				ip, mac, err := parseArpLine(line, hwPos)
-				slog.With("ip", ip.String(), "mac", mac.String(), "err", err).Debug("Line parsed")
-
-				if err != nil {
-					slog.With("line", string(line), "err", err).
-						Error("Error parsing arp line")
-				} else if !reflect.DeepEqual(mac.String(), emptyMac.String()) &&
-					isInSubnet(ip, network) {
-					slog.With("ip", ip, "mac", mac).Debug("Mac is not empty. Found ip in the subnet. Binding to mac")
-					registration.AddIpToMac(ip, mac)
-
-					// TODO:
-					// We need to check if multiples mac address have the same ip. Or
-					// if an ip taken and another host have the same ip in the OldIps
-				}
-			}
-			line = line[:0]
+			slog.With("IP", n.IP.String(), "MAC", n.HardwareAddr.String()).
+				Debug("Received an update from neighbor that will not be hanled")
 		}
 	}
 }
 
-// line is the all line of the arp table
-// hwPos the the number of the first byte that contains the mac address
-func parseArpLine(line []byte, hwPos int) (net.IP, net.HardwareAddr, error) {
-	l := len(line)
-	if hwPos >= l {
-		return nil, nil, fmt.Errorf("hwPos is greater than the line length")
-	}
-	if hwPos <= 0 {
-		return nil, nil, fmt.Errorf("hwPos is too small")
-	}
-
-	// forgive me for this
-	ip := net.ParseIP(strings.TrimSpace(string(line[0:15])))
-	mac, err := net.ParseMAC(string(line[hwPos : hwPos+17]))
-
-	return ip, mac, err
-}
-
-func isInSubnet(ip net.IP, network net.IPNet) bool {
+func isInSubnet(ip net.IP, network *net.IPNet) bool {
 	return ip.Mask(network.Mask).Equal(network.IP.Mask(network.Mask))
 }
 
 func isStillConnected(e registration.Registration) bool {
 	arping.SetTimeout(1 * time.Second) // should be put in config
 
+	slog.With("Registration", e).Debug("Checking registration")
 	for _, ip := range e.Ips {
-		mac, _, err := arping.Ping(ip)
-		if err != nil {
-			slog.With("ip", ip, "err", err).Debug("error during arping")
-		} else {
+		slog.With("ip", ip).Debug("Checking ip")
+		if ip.To4() != nil { // Is an IPv4
+			mac, _, err := arping.Ping(ip)
+			if err != nil {
+				slog.With("ip", ip, "err", err).Debug("error during arping")
+			} else {
+				if e.Mac != mac.String() {
+					// In this case another host has reponded to the arping. It is possible
+					// that multiples hosts have the same ip or that the previous host has
+					// changed ip and another host has now his old ip. We assume the first
+					// one
+					slog.With("registration", e, "new mac", mac.String()).Debug("Different mac responded to arping")
 
-			if e.Mac != mac.String() {
-				// in this case another host has reponded to the arping. It is possible
-				// that multiples hosts have the same ip or that the previous host has
-				// changed ip and another host has now his old ip. We assume the first
-				// one
+					// TODO
 
-				// we need to delete old ips from the entries in order to perform this
-				// check correctly
-				slog.With("registration", e, "new mac", mac.String()).Debug("Different mac responded to arping")
-
-				// we delete the newest registration with the ip
-				entries := registration.GetAllEntries()
-				valid := -1
-				for i, e := range entries {
-					if isIpPrenset(e.Ips, ip) {
-						if valid == -1 {
-							valid = i
-						} else if e.Start.Compare(entries[valid].Start) == -1 {
-							valid = i
-						}
-					}
+					return false
 				}
+				return true
+			}
+		} else { // Is an IPv6
+			// To check IPv6 we try to ping the host
+			p, err := ping.New(ip.String())
+			if err != nil {
+				slog.With("ip", ip.String(), "err", err).Error("Could not construct ping object")
+				continue
+			}
+			p.SetCount(1)
 
-				deleteEntryFromFirewall(entries[valid])
-				registration.Remove(entries[valid])
-
-				// If we set up a mail server we can send a mail explaining why the
-				// connection is dropped
-				return false
+			r, err := p.Run()
+			if err != nil {
+				slog.With("ip", ip.String(), "err", err).Error("Could not run ping to IPv6")
+				continue
 			}
 
-			return true
+			for pr := range r {
+				if pr.Err != nil {
+					return true
+				}
+			}
 		}
 	}
 

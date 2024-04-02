@@ -2,6 +2,9 @@ kerberos:
   realm: ATHENA.MIT.EDU
   disablePAFXFAST: true
 
+# This is used in test, every user match with a password equal to his name
+dummyLogin: false
+
 socketPath: /tmp/macpass.sock
 
 databasePath: ./db.sqlite
