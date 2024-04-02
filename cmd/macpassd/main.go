@@ -75,12 +75,12 @@ func startDaemon() {
 	go handleComunication()
 	conf := config.Get()
 
+	go listenForNeighbourUpdates()
+
 	for {
-		// checkIfStilConnected() TODO
 		deleteOldEntries()
 		deleteOldIps()
 		deleteDisconnected()
-		scanNetwork()
 
 		time.Sleep(time.Duration(conf.IterationTime) * time.Second)
 	}

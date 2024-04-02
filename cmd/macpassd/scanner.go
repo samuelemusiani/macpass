@@ -13,7 +13,7 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
-func scanNetwork() {
+func listenForNeighbourUpdates() {
 	conf := config.Get()
 
 	_, network4, err := net.ParseCIDR(conf.Network.IP4)
