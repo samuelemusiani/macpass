@@ -64,50 +64,13 @@ func isInSubnet(ip net.IP, network *net.IPNet) bool {
 	return ip.Mask(network.Mask).Equal(network.IP.Mask(network.Mask))
 }
 
-func isStillConnected(e registration.Registration) bool {
+func isRegistrationStillConnected(e registration.Registration) bool {
 	arping.SetTimeout(1 * time.Second) // should be put in config
 
 	slog.With("Registration", e.String()).Debug("Checking registration")
 	for _, ip := range e.Ips {
-		slog.With("ip", ip).Debug("Checking ip")
-		if ip.To4() != nil { // Is an IPv4
-			mac, _, err := arping.Ping(ip)
-			if err != nil {
-				slog.With("ip", ip, "err", err).Debug("error during arping")
-			} else {
-				if e.Mac != mac.String() {
-					// In this case another host has reponded to the arping. It is possible
-					// that multiples hosts have the same ip or that the previous host has
-					// changed ip and another host has now his old ip. We assume the first
-					// one
-					slog.With("registration", e.String(), "new mac", mac.String()).Debug("Different mac responded to arping")
-
-					// TODO
-
-					return false
-				}
-				return true
-			}
-		} else { // Is an IPv6
-			// To check IPv6 we try to ping the host
-			p, err := ping.New(ip.String())
-			if err != nil {
-				slog.With("ip", ip.String(), "err", err).Error("Could not construct ping object")
-				continue
-			}
-			p.SetCount(1)
-
-			r, err := p.Run()
-			if err != nil {
-				slog.With("ip", ip.String(), "err", err).Error("Could not run ping to IPv6")
-				continue
-			}
-
-			for pr := range r {
-				if pr.Err != nil {
-					return true
-				}
-			}
+		if isIPStillConnected(ip) {
+			return true
 		}
 	}
 
@@ -131,6 +94,41 @@ func isIpPrenset(set []net.IP, ip net.IP) bool {
 
 	for _, i := range set {
 		if i.Equal(ip) {
+			return true
+		}
+	}
+	return false
+}
+
+func isIPStillConnected(ip net.IP) bool {
+	slog.With("ip", ip).Debug("Checking ip")
+
+	if ip.To4() != nil { // Is an IPv4
+		_, _, err := arping.Ping(ip)
+		if err != nil {
+			slog.With("ip", ip, "err", err).Debug("error during arping")
+			return false
+		}
+		return true
+	}
+
+	// Is an IPv6
+	// To check IPv6 we try to ping the host
+	p, err := ping.New(ip.String())
+	if err != nil {
+		slog.With("ip", ip.String(), "err", err).Error("Could not construct ping object")
+		return false
+	}
+	p.SetCount(1)
+
+	r, err := p.Run()
+	if err != nil {
+		slog.With("ip", ip.String(), "err", err).Error("Could not run ping to IPv6")
+		return false
+	}
+
+	for pr := range r {
+		if pr.Err != nil {
 			return true
 		}
 	}

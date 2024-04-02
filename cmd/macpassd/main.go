@@ -6,7 +6,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/j-keck/arping"
 	"github.com/musianisamuele/macpass/cmd/macpassd/config"
 	"github.com/musianisamuele/macpass/cmd/macpassd/registration"
 )
@@ -118,9 +117,7 @@ func deleteOldIps() {
 			ipsThatDidNotAnswered := make([]net.IP, 0)
 
 			for _, ip := range e.Ips {
-				_, _, err := arping.Ping(ip)
-				if err != nil {
-					slog.With("ip", ip, "err", err).Debug("error during arping")
+				if !isIPStillConnected(ip) {
 					ipsThatDidNotAnswered = append(ipsThatDidNotAnswered, ip)
 				}
 			}
@@ -145,7 +142,7 @@ func deleteDisconnected() {
 	discTime := config.Get().DisconnectionTime
 
 	for _, e := range entries {
-		if !isStillConnected(e) {
+		if !isRegistrationStillConnected(e) {
 			if !e.IsDown {
 				slog.Info(e.User + " disconnected")
 				registration.SetHostDown(e)
