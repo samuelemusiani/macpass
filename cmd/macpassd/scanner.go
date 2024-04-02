@@ -4,6 +4,7 @@ import (
 	"log"
 	"log/slog"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/j-keck/arping"
@@ -109,6 +110,7 @@ func isIPStillConnected(ip net.IP) bool {
 			slog.With("ip", ip, "err", err).Debug("error during arping")
 			return false
 		}
+		slog.With("ip", ip).Debug("IP responded to arping")
 		return true
 	}
 
@@ -119,6 +121,7 @@ func isIPStillConnected(ip net.IP) bool {
 		slog.With("ip", ip.String(), "err", err).Error("Could not construct ping object")
 		return false
 	}
+	p.SetPrivilegedICMP(false)
 	p.SetCount(1)
 
 	r, err := p.Run()
@@ -128,9 +131,15 @@ func isIPStillConnected(ip net.IP) bool {
 	}
 
 	for pr := range r {
-		if pr.Err != nil {
+		if pr.Err == nil {
+			slog.With("ip", ip).Debug("IP responded to ping")
 			return true
+		} else if strings.Contains(pr.Err.Error(), "Request timeout") {
+			slog.With("ip", ip, "response", pr).Debug("Error while pinging ip")
+		} else {
+			slog.With("ip", ip, "response", pr).Error("Error while pinging ip")
 		}
 	}
+	slog.With("ip", ip).Debug("IP didn't respond to ping")
 	return false
 }
