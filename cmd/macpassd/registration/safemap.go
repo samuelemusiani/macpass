@@ -29,15 +29,15 @@ func (m *safeMap) remove(mac string) {
 // in the m map. If the ip is in the OldIPs files nothing is done
 func (m *safeMap) addIp(mac string, ip net.IP) {
 	aval, present := m.v.Load(mac)
-	val, ok := aval.(Registration)
-
-	if !ok {
-		slog.With("ok", ok, "aval", aval).
-			Error("Type assertion failed. Could not converto aval to type Registration")
-		log.Fatal("Could not continue")
-	}
-
 	if present {
+		val, ok := aval.(Registration)
+
+		if !ok {
+			slog.With("ok", ok, "aval", aval).
+				Error("Type assertion failed. Could not converto aval to type Registration")
+			log.Fatal("Could not continue")
+		}
+
 		if !isIpPrenset(val.Ips, ip) && !isIpPrenset(val.OldIps, ip) {
 			val.Ips = append(val.Ips, ip) //Need to check for duplicates
 			slog.With("registration", val.String()).
