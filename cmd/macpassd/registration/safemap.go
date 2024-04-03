@@ -1,6 +1,7 @@
 package registration
 
 import (
+	"log"
 	"log/slog"
 	"net"
 	"sync"
@@ -9,42 +10,41 @@ import (
 // A safe map is a map that have a Mutex condition in order to support
 // concurrency
 type safeMap struct {
-	mu sync.Mutex
-	v  map[string]Registration
+	v sync.Map
 }
 
 func newSafeMap() *safeMap {
-	return &safeMap{v: make(map[string]Registration)}
+	return &safeMap{}
 }
 
 func (m *safeMap) add(r Registration) {
-	m.mu.Lock()
-	m.v[r.Mac] = r
-	m.mu.Unlock()
+	m.v.Store(r.Mac, r)
 }
 
 func (m *safeMap) remove(mac string) {
-	m.mu.Lock()
-	delete(m.v, mac)
-	m.mu.Unlock()
+	m.v.Delete(mac)
 }
 
 // This function adds the ip to the registration associated with the mac address
 // in the m map. If the ip is in the OldIPs files nothing is done
 func (m *safeMap) addIp(mac string, ip net.IP) {
-	_, present := m.v[mac]
-	if present {
-		m.mu.Lock()
-		val := m.v[mac]
+	aval, present := m.v.Load(mac)
+	val, ok := aval.(Registration)
 
+	if !ok {
+		slog.With("ok", ok, "aval", aval).
+			Error("Type assertion failed. Could not converto aval to type Registration")
+		log.Fatal("Could not continue")
+	}
+
+	if present {
 		if !isIpPrenset(val.Ips, ip) && !isIpPrenset(val.OldIps, ip) {
 			val.Ips = append(val.Ips, ip) //Need to check for duplicates
 			slog.With("registration", val.String()).
 				Info("The registration is been updated on the map")
 		}
 
-		m.v[mac] = val
-		m.mu.Unlock()
+		m.v.Store(mac, val)
 	}
 }
 

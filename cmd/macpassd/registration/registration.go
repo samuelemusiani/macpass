@@ -91,11 +91,17 @@ func Remove(r Registration) {
 // expired.
 func GetOldEntries() (oldEntries []Registration) {
 	// Get from map
-	for _, reg := range currentMap.v {
-		if time.Now().Sub(reg.End) >= 0 {
-			oldEntries = append(oldEntries, reg)
+	currentMap.v.Range(func(key, value any) bool {
+		val, ok := value.(Registration)
+		if !ok {
+			slog.With("value", value, "ok", ok).
+				Error("Type assertion failed. Could not converto aval to type Registration")
+			log.Fatal("Could not continue")
+			return false
 		}
-	}
+		oldEntries = append(oldEntries, val)
+		return true
+	})
 
 	// Get from db ?
 	return
@@ -112,9 +118,17 @@ func AddIpToMac(ip net.IP, mac net.HardwareAddr) {
 
 func GetAllEntries() (entries []Registration) {
 	// Get from map
-	for _, reg := range currentMap.v {
-		entries = append(entries, reg)
-	}
+	currentMap.v.Range(func(key, value any) bool {
+		val, ok := value.(Registration)
+		if !ok {
+			slog.With("value", value, "ok", ok).
+				Error("Type assertion failed. Could not converto aval to type Registration")
+			log.Fatal("Could not continue")
+			return false
+		}
+		entries = append(entries, val)
+		return true
+	})
 
 	// Get from db
 	return
@@ -122,26 +136,20 @@ func GetAllEntries() (entries []Registration) {
 
 func UpdateLastPing(e Registration) {
 	//update on map
-	currentMap.mu.Lock()
 	e.LastPing = time.Now()
-	currentMap.v[e.Mac] = e
-	currentMap.mu.Unlock()
+	currentMap.v.Store(e.Mac, e)
 }
 
 func SetHostDown(e Registration) {
 	//update on map
-	currentMap.mu.Lock()
 	e.IsDown = true
-	currentMap.v[e.Mac] = e
-	currentMap.mu.Unlock()
+	currentMap.v.Store(e.Mac, e)
 }
 
 func SetHostUp(e Registration) {
 	//update on map
-	currentMap.mu.Lock()
 	e.IsDown = false
-	currentMap.v[e.Mac] = e
-	currentMap.mu.Unlock()
+	currentMap.v.Store(e.Mac, e)
 }
 
 // This function removes the ip form the Ips field of a registration and save
@@ -155,10 +163,8 @@ func RemoveIP(e Registration, ip net.IP) {
 		}
 	}
 
-	currentMap.mu.Lock()
 	e.Ips = newIps
-	currentMap.v[e.Mac] = e
-	currentMap.mu.Unlock()
+	currentMap.v.Store(e.Mac, e)
 }
 
 // This function removes the ip form the Ips field of a registration, move the
@@ -175,11 +181,9 @@ func SetOldIP(e Registration, ip net.IP) {
 		}
 	}
 
-	currentMap.mu.Lock()
 	e.Ips = newIps
 	e.OldIps = oldIps
-	currentMap.v[e.Mac] = e
-	currentMap.mu.Unlock()
+	currentMap.v.Store(e.Mac, e)
 }
 
 func GetOldStateFromDB() []Registration {

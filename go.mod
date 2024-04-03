@@ -9,6 +9,7 @@ require (
 	github.com/jcmturner/gokrb5/v8 v8.4.4
 	github.com/mattn/go-sqlite3 v1.14.17
 	github.com/vishvananda/netlink v1.1.0
+	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
 	golang.org/x/term v0.13.0
 	gotest.tools/v3 v3.5.1
 	internal/comunication v1.0.0
