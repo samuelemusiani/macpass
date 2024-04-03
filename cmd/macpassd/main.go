@@ -74,7 +74,7 @@ func startDaemon() {
 	go handleComunication()
 	conf := config.Get()
 
-	go listenForNeighbourUpdates()
+	go scanNeighbours()
 
 	for {
 		deleteOldEntries()

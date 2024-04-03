@@ -16,7 +16,7 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
-func listenForNeighbourUpdates() {
+func scanNeighbours() {
 	conf := config.Get()
 
 	_, network4, err := net.ParseCIDR(conf.Network.IP4)
@@ -36,29 +36,37 @@ func listenForNeighbourUpdates() {
 	slog.With("IPv4", network4.String(), "IPv6", network6.String()).
 		Debug("Listening for neighbor updates")
 
-	nUpdate := make(chan netlink.NeighUpdate)
-	done := make(chan struct{})
-
-	netlink.NeighSubscribe(nUpdate, done)
+	link, err := netlink.LinkByName(conf.Network.IFace)
+	if err != nil {
+		slog.With("link", conf.Network.IFace, "err", err).
+			Error("Could not get link by name")
+		log.Fatal("Could not continue")
+	}
 
 	for {
-		nu := <-nUpdate
-		n := nu.Neigh
-
-		if !isInSubnet(n.IP, network4) && !isInSubnet(n.IP, network6) {
-			slog.With("ip", n.IP.String(), "net4", network4.String(), "net6", network6.String()).Debug("Ip not in subnet, ignoring")
-			continue
+		nl, err := netlink.NeighList(link.Attrs().Index, netlink.FAMILY_ALL)
+		if err != nil {
+			slog.With("link", conf.Network.IFace, "err", err).
+				Error("Could not get neighbor list")
 		}
 
-		// If the state is Reachable or Stale we can assume that the MAC address
-		// is not empy
-		if n.State == netlink.NUD_REACHABLE || n.State == netlink.NUD_STALE {
-			slog.With("IP", n.IP.String(), "MAC", n.HardwareAddr.String()).
-				Debug("Received a REACHABLE or STALE update from neighbor")
-			registration.AddIpToMac(n.IP, n.HardwareAddr)
-		} else {
-			slog.With("IP", n.IP.String(), "MAC", n.HardwareAddr.String()).
-				Debug("Received an update from neighbor that will not be hanled")
+		for _, n := range nl {
+
+			if !isInSubnet(n.IP, network4) && !isInSubnet(n.IP, network6) {
+				slog.With("ip", n.IP.String(), "net4", network4.String(), "net6", network6.String()).Debug("Ip not in subnet, ignoring")
+				continue
+			}
+
+			// If the state is Reachable or Stale we can assume that the MAC address
+			// is not empy
+			if n.State == netlink.NUD_REACHABLE || n.State == netlink.NUD_STALE {
+				slog.With("IP", n.IP.String(), "MAC", n.HardwareAddr.String()).
+					Debug("Received a REACHABLE or STALE update from neighbor")
+				registration.AddIpToMac(n.IP, n.HardwareAddr)
+			} else {
+				slog.With("IP", n.IP.String(), "MAC", n.HardwareAddr.String()).
+					Debug("Received an update from neighbor that will not be hanled")
+			}
 		}
 	}
 }
