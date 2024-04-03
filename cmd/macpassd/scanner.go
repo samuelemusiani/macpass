@@ -68,6 +68,7 @@ func scanNeighbours() {
 					Debug("Received an update from neighbor that will not be hanled")
 			}
 		}
+		time.Sleep(time.Duration(conf.IterationTime) * time.Second)
 	}
 }
 
