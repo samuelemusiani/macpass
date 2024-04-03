@@ -99,7 +99,9 @@ func GetOldEntries() (oldEntries []Registration) {
 			log.Fatal("Could not continue")
 			return false
 		}
-		oldEntries = append(oldEntries, val)
+		if time.Now().Sub(val.End) >= 0 {
+			oldEntries = append(oldEntries, val)
+		}
 		return true
 	})
 
