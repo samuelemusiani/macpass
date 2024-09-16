@@ -10,3 +10,6 @@ socketPath: /tmp/macpass.sock
 databasePath: ./db.sqlite
   
 maxConnectionTime: 8
+
+# Debug mode
+debug: false

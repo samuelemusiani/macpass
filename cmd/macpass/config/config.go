@@ -17,6 +17,7 @@ type Config struct {
 	SocketPath        string         `json:"socketPath"`
 	MaxConnectionTime int            `json:"maxConnectionTime"`
 	DBPath            string         `json:"databasePath"`
+	Debug             bool           `json:"debug"`
 }
 
 var config Config
