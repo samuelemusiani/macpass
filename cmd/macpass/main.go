@@ -125,19 +125,24 @@ func getUser() string {
 		slog.With("err", err).Debug("Can't find SSH auth key")
 		key_is_present = false
 	} else {
+		slog.With("key", key).Debug("Found ssh key for user")
 		user, err = db.GetUserFromKey(key)
 		if err != nil {
 			slog.With("key", key, "err", err).Debug("Can't get user from ssh key")
 			user = ""
+		} else {
+			slog.With("user", user).Debug("Found user from key")
 		}
 	}
 
 	if user == "" {
+		slog.Debug("User is empty, normal login")
 		user = login()
 	}
 
 	if key_is_present {
 		// If the user had already authenticated we saved his ssh key
+		slog.With("user", user, "key", key).Debug("Adding key to user")
 		db.AddKeyToUser(user, key)
 	}
 
