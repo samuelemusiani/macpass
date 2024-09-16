@@ -88,6 +88,20 @@ func GetKeysFromUser(user string) ([]string, error) {
 	return result, nil
 }
 
+func GetUserFromKey(key string) (string, error) {
+	row := database.QueryRow(`SELECT user FROM users WHERE id = (
+    SELECT id FROM ssh_keys WHERE ssh_key = ?
+    )`, key)
+
+	var user string
+	err := row.Scan(&user)
+	if err != nil {
+		return "", err
+	}
+
+	return user, nil
+}
+
 func GetMac(user string) (mac string, isPresent bool) {
 	selectOutdated := `SELECT mac FROM users WHERE user=?`
 	row := database.QueryRow(selectOutdated, user)

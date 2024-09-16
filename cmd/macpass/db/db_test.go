@@ -93,3 +93,21 @@ func TestGetKeysFromUser(t *testing.T) {
 	assert.True(t, true, found(keys, key1))
 	assert.True(t, true, found(keys, key2))
 }
+
+func TestUserFromKey(t *testing.T) {
+	Connect(DB_PATH)
+
+	user := "alice"
+	mac := "22:33:44:55:66:11"
+	InsertUser(user, mac)
+
+	key := "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO/gWVcWT5GHwDWRVtFWGkUpQhCycrH7yrMjmfwUjYLp ali@pc"
+
+	err := AddKeyToUser(user, key)
+	assert.Nil(t, err)
+
+	user_db, err := GetUserFromKey(key)
+	assert.Nil(t, err)
+
+	assert.Equal(t, user, user_db)
+}
