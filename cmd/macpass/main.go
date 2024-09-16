@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"log/slog"
 	"net"
+	"os"
 	"strings"
 
 	"internal/comunication"
@@ -22,7 +24,11 @@ func main() {
 	conf := config.Get()
 	db.Connect(conf.DBPath)
 
-	user := login()
+	if conf.Debug {
+		slog.SetLogLoggerLevel(slog.LevelDebug)
+	}
+
+	user := getUser()
 	macAdd := input.Mac(user)
 	time := input.RegistrationTime()
 
@@ -93,4 +99,47 @@ func send(r comunication.Request) {
 	}
 
 	conn.Close()
+}
+
+func getSSHAuthKey() (string, error) {
+	file, found := os.LookupEnv("SSH_USER_AUTH")
+
+	if !found {
+		return "", fmt.Errorf("Can't find SSH_USER_AUTH env variable")
+	}
+
+	key, err := os.ReadFile(file)
+	if err != nil {
+		return "", err
+	}
+
+	return string(key), nil
+}
+
+func getUser() string {
+	var key_is_present = true
+	var user string = ""
+
+	key, err := getSSHAuthKey()
+	if err != nil {
+		slog.With("err", err).Debug("Can't find SSH auth key")
+		key_is_present = false
+	} else {
+		user, err = db.GetUserFromKey(key)
+		if err != nil {
+			slog.With("key", key, "err", err).Debug("Can't get user from ssh key")
+			user = ""
+		}
+	}
+
+	if user == "" {
+		user = login()
+	}
+
+	if key_is_present {
+		// If the user had already authenticated we saved his ssh key
+		db.AddKeyToUser(user, key)
+	}
+
+	return user
 }
