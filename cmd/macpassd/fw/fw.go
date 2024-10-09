@@ -22,9 +22,9 @@ const (
 func New(t FirewallType) (Firewall, error) {
 	switch t {
 	case TYPE_IPTABLES:
-		return Iptables{}, nil
+		return &Iptables{}, nil
 	case TYPE_SHOREWALL:
-		return Shorewall{}, nil
+		return &Shorewall{}, nil
 	default:
 		return nil, errors.New("Type not supported")
 	}

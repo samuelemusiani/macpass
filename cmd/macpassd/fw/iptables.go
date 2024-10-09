@@ -16,7 +16,7 @@ type Iptables struct {
 	conf *config.Config
 }
 
-func (i Iptables) Init() {
+func (i *Iptables) Init() {
 	slog.Info("Initializing iptables")
 
 	i.conf = config.Get()
@@ -67,7 +67,7 @@ func (i Iptables) Init() {
 	}
 }
 
-func (i Iptables) Allow(r registration.Registration) {
+func (i *Iptables) Allow(r registration.Registration) {
 	err0 := i.ip4Table.InsertUnique("filter", "FORWARD", 1, []string{"-i",
 		i.conf.Network.IFace, "-m", "mac", "--mac-source",
 		r.Mac, "-j", "ACCEPT"}...)
@@ -85,7 +85,7 @@ func (i Iptables) Allow(r registration.Registration) {
 	}
 }
 
-func (i Iptables) Delete(r registration.Registration) {
+func (i *Iptables) Delete(r registration.Registration) {
 	err0 := i.ip4Table.Delete("filter", "FORWARD", []string{"-i", i.conf.Network.IFace,
 		"-m", "mac", "--mac-source", r.Mac, "-j", "ACCEPT"}...)
 

@@ -9,6 +9,9 @@ network:
   # How much time (in ms) to wait for a host to respond to arping
   timeout: 1000
 
+  # Interface name. 
+  # If firewall is 'iptables' this should be the network interface from linux
+  # If firewall is 'shorewall' the shorewall network interface name must be used (es. NET_IF)
   inInterface: eth0
 
 # How much time to wait to do the next network scan and old entries scan. In
