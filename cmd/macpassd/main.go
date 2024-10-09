@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/musianisamuele/macpass/cmd/macpassd/config"
+	"github.com/musianisamuele/macpass/cmd/macpassd/fw"
 	"github.com/musianisamuele/macpass/cmd/macpassd/registration"
 )
 
@@ -53,13 +54,19 @@ func main() {
 	// }
 	// entriesLogger = log.New(f, "", 3)
 
-	startDaemon()
+	firewall, err := fw.New(fw.FirewallType(conf.Firewall))
+	if err != nil {
+		slog.With("err", err).Error("Erro creating firewall")
+		os.Exit(1)
+	}
+
+	startDaemon(firewall)
 }
 
-func startDaemon() {
+func startDaemon(fw fw.Firewall) {
 	slog.Info("Starting macpassd daemon")
 
-	initIptables()
+	fw.Init()
 
 	initComunication()
 	registration.Init()
@@ -68,18 +75,18 @@ func startDaemon() {
 	old := registration.GetOldStateFromDB()
 	for i := range old {
 		registration.AddRegistrationToMapFromDB(old[i])
-		allowNewEntryOnFirewall(old[i])
+		fw.Allow(old[i])
 	}
 
-	go handleComunication()
+	go handleComunication(fw)
 	conf := config.Get()
 
 	go scanNeighbours()
 
 	for {
-		deleteOldEntries()
+		deleteOldEntries(fw)
 		deleteOldIps()
-		deleteDisconnected()
+		deleteDisconnected(fw)
 
 		time.Sleep(time.Duration(conf.IterationTime) * time.Second)
 	}
@@ -87,12 +94,12 @@ func startDaemon() {
 
 // This functions delete all the old entries. An old entry is a registration
 // that have the connection time expired.
-func deleteOldEntries() {
+func deleteOldEntries(fw fw.Firewall) {
 	oldEntries := registration.GetOldEntries()
 
 	slog.With("oldEntries", oldEntries).Debug("Removing old entries")
 	for _, e := range oldEntries {
-		deleteEntryFromFirewall(e)
+		fw.Delete(e)
 		registration.Remove(e)
 	}
 }
@@ -136,7 +143,7 @@ func deleteOldIps() {
 
 // If a host goes offline we wait for a period of DisconnectionTime and if it
 // does not respond we delete him
-func deleteDisconnected() {
+func deleteDisconnected(fw fw.Firewall) {
 	entries := registration.GetAllEntries()
 
 	discTime := config.Get().DisconnectionTime
@@ -149,7 +156,7 @@ func deleteDisconnected() {
 			}
 
 			if time.Now().Sub(e.LastPing) > time.Duration(discTime)*time.Minute {
-				deleteEntryFromFirewall(e)
+				fw.Delete(e)
 				registration.Remove(e)
 			}
 		} else {

@@ -26,5 +26,9 @@ dbPath: "/var/db/macpassd-entries.db"
 
 loggerPath: "/var/log/macpassd-entries.log" # not working
 
+
+# Select firewall backend: [iptables, shorewall]
+firewall: "iptables"
+
 # The options are debug, info, warn and error
 logLevel: debug

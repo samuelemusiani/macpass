@@ -26,6 +26,7 @@ type Config struct {
 	LogLevel          string  `json:"logLevel"`
 	IterationTime     int     `json:"iterationTime"`
 	DisconnectionTime int     `json:"disconnectionTime"`
+	Firewall          string  `json:"firewall"`
 }
 
 var config Config
