@@ -13,6 +13,7 @@ import (
 	"syscall"
 
 	"github.com/musianisamuele/macpass/cmd/macpassd/config"
+	"github.com/musianisamuele/macpass/cmd/macpassd/fw"
 )
 
 var socket net.Listener
@@ -62,7 +63,7 @@ func initComunication() {
 	}()
 }
 
-func handleComunication() {
+func handleComunication(fw fw.Firewall) {
 	slog.With("socketAdd: ", socket.Addr().String()).
 		Info("Listening for new comunication on socket.")
 
@@ -89,6 +90,6 @@ func handleComunication() {
 			slog.With("error", err).Error("Decoding comunication from macpass")
 		}
 
-		handleRequest(newEntry)
+		handleRequest(newEntry, fw)
 	}
 }
