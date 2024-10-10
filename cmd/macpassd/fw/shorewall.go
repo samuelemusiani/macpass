@@ -57,6 +57,8 @@ func (s *Shorewall) Allow(r registration.Registration) {
 		slog.With("err", err).Error("Unable to write MACFile")
 		return
 	}
+
+	reload()
 }
 
 func (s *Shorewall) Delete(r registration.Registration) {
@@ -81,6 +83,8 @@ func (s *Shorewall) Delete(r registration.Registration) {
 		slog.With("err", err).Error("Unable to write MACFile")
 		return
 	}
+
+	reload()
 }
 
 func shellExec(command string) (string, string, error) {
@@ -124,6 +128,13 @@ func writeMACFile(macs []string, inter string) error {
 	}
 
 	return os.WriteFile(MACLIST_PATH, buff.Bytes(), 0644)
+}
+
+func reload() {
+	_, stderr, err := shellExec("shorewall reload")
+	if err != nil {
+		slog.With("err", err, "stderr", stderr).Error("Can't reload shorewall")
+	}
 }
 
 func remove(s []string, i int) []string {
