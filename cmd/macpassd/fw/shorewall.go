@@ -114,10 +114,10 @@ func parseMACFile() ([]string, error) {
 		}
 
 		if len(fields) < 3 {
-			return nil, errors.New(fmt.Sprintf("Parsing MACFile. Line have less than 3 files. Line: %s", l))
+			return nil, errors.New(fmt.Sprintf("Parsing MACFile. Line have less than 3 fields. Line: %s", l))
 		}
 
-		macs = append(macs, fields[3])
+		macs = append(macs, fields[2])
 	}
 
 	return macs, nil
