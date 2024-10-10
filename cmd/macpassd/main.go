@@ -54,7 +54,7 @@ func main() {
 	// }
 	// entriesLogger = log.New(f, "", 3)
 
-	firewall, err := fw.New(fw.FirewallType(conf.Firewall))
+	firewall, err := fw.New(fw.FirewallType(conf.Firewall.Type))
 	if err != nil {
 		slog.With("err", err).Error("Erro creating firewall")
 		os.Exit(1)

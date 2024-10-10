@@ -18,15 +18,20 @@ type Network struct {
 	IFace   string `json:"inInterface"`
 }
 
+type Firewall struct {
+	Type        string `json:"type"`
+	ShorewallIF string `json:"shorewallIF"`
+}
+
 type Config struct {
-	Socket            Socket  `json:"socket"`
-	Network           Network `json:"network"`
-	LoggerPath        string  `json:"loggerPath"`
-	DbPath            string  `json:"dbPath"`
-	LogLevel          string  `json:"logLevel"`
-	IterationTime     int     `json:"iterationTime"`
-	DisconnectionTime int     `json:"disconnectionTime"`
-	Firewall          string  `json:"firewall"`
+	Socket            Socket   `json:"socket"`
+	Network           Network  `json:"network"`
+	LoggerPath        string   `json:"loggerPath"`
+	DbPath            string   `json:"dbPath"`
+	LogLevel          string   `json:"logLevel"`
+	IterationTime     int      `json:"iterationTime"`
+	DisconnectionTime int      `json:"disconnectionTime"`
+	Firewall          Firewall `json:"firewall"`
 }
 
 var config Config

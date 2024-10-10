@@ -52,7 +52,7 @@ func (s *Shorewall) Allow(r registration.Registration) {
 
 	macs = append(macs, r.Mac)
 
-	err = writeMACFile(macs, s.conf.Network.IFace)
+	err = writeMACFile(macs, s.conf.Firewall.ShorewallIF)
 	if err != nil {
 		slog.With("err", err).Error("Unable to write MACFile")
 		return
@@ -78,7 +78,7 @@ func (s *Shorewall) Delete(r registration.Registration) {
 		}
 	}
 
-	err = writeMACFile(macs, s.conf.Network.IFace)
+	err = writeMACFile(macs, s.conf.Firewall.ShorewallIF)
 	if err != nil {
 		slog.With("err", err).Error("Unable to write MACFile")
 		return

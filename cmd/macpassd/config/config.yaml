@@ -10,9 +10,13 @@ network:
   timeout: 1000
 
   # Interface name. 
-  # If firewall is 'iptables' this should be the network interface from linux
-  # If firewall is 'shorewall' the shorewall network interface name must be used (es. NET_IF)
   inInterface: eth0
+
+firewall:
+  # Select firewall backend: [iptables, shorewall]
+  type: "iptables"
+  # If shorewall is the firewall, the name of the interface on shorewall (es. NET_IF)
+  shorewallIF: NET_IF
 
 # How much time to wait to do the next network scan and old entries scan. In
 # seconds
@@ -28,10 +32,6 @@ disconnectionTime: 10
 dbPath: "/var/db/macpassd-entries.db"
 
 loggerPath: "/var/log/macpassd-entries.log" # not working
-
-
-# Select firewall backend: [iptables, shorewall]
-firewall: "iptables"
 
 # The options are debug, info, warn and error
 logLevel: debug
