@@ -109,6 +109,10 @@ func parseMACFile() ([]string, error) {
 
 	for _, l := range strings.Split(buffs, "\n") {
 		fields := strings.Fields(l)
+		if len(fields) == 0 || fields[0][0] == '#' {
+			continue
+		}
+
 		if len(fields) < 3 {
 			return nil, errors.New(fmt.Sprintf("Parsing MACFile. Line have less than 3 files. Line: %s", l))
 		}
