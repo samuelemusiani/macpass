@@ -127,8 +127,9 @@ func parseMACFile() ([]string, error) {
 func writeMACFile(macs []string, inter string) error {
 	var buff bytes.Buffer
 
+	buff.Write([]byte("#DISPOSITION\tINTERFACE\tMAC\n"))
 	for i := range macs {
-		buff.Write([]byte(fmt.Sprintf("ACCEPT\t%s\t%s", inter, macs[i])))
+		buff.Write([]byte(fmt.Sprintf("ACCEPT\t%s\t%s\n", inter, macs[i])))
 	}
 
 	return os.WriteFile(MACLIST_PATH, buff.Bytes(), 0644)
