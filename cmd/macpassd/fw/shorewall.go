@@ -15,8 +15,9 @@ import (
 )
 
 const (
-	SHELL        = "bash"
-	MACLIST_PATH = "/etc/shorewall/maclist"
+	SHELL         = "bash"
+	MACLIST4_PATH = "/etc/shorewall/maclist"
+	MACLIST6_PATH = "/etc/shorewall6/maclist"
 )
 
 type Shorewall struct {
@@ -37,14 +38,23 @@ func (s *Shorewall) Init() {
 		os.Exit(3)
 	}
 
+	stdout6, stderr, err := shellExec("shorewall6 version")
+	if err != nil {
+		slog.With("err", err, "stderr", stderr).Error("Can't get shorewall version")
+		os.Exit(3)
+	}
+
 	slog.With("version", stdout).Info("Detected shorewall version")
+	slog.With("version6", stdout6).Info("Detected shorewall6 version")
 }
 
 func (s *Shorewall) Allow(r registration.Registration) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	macs, err := parseMACFile()
+	// IPv4
+
+	macs, err := parseMAC4File()
 	if err != nil {
 		slog.With("err", err).Error("Unable to parse MACFile")
 		return
@@ -52,9 +62,25 @@ func (s *Shorewall) Allow(r registration.Registration) {
 
 	macs = append(macs, r.Mac)
 
-	err = writeMACFile(macs, s.conf.Firewall.ShorewallIF)
+	err = writeMAC4File(macs, s.conf.Firewall.ShorewallIF)
 	if err != nil {
 		slog.With("err", err).Error("Unable to write MACFile")
+		return
+	}
+
+	// IPv6
+
+	macs, err = parseMAC6File()
+	if err != nil {
+		slog.With("err", err).Error("Unable to parse MAC6File")
+		return
+	}
+
+	macs = append(macs, r.Mac)
+
+	err = writeMAC6File(macs, s.conf.Firewall.ShorewallIF)
+	if err != nil {
+		slog.With("err", err).Error("Unable to write MAC6File")
 		return
 	}
 
@@ -65,7 +91,9 @@ func (s *Shorewall) Delete(r registration.Registration) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	macs, err := parseMACFile()
+	// IPv4
+
+	macs, err := parseMAC4File()
 	if err != nil {
 		slog.With("err", err).Error("Unable to parse MACFile")
 		return
@@ -78,7 +106,28 @@ func (s *Shorewall) Delete(r registration.Registration) {
 		}
 	}
 
-	err = writeMACFile(macs, s.conf.Firewall.ShorewallIF)
+	err = writeMAC4File(macs, s.conf.Firewall.ShorewallIF)
+	if err != nil {
+		slog.With("err", err).Error("Unable to write MACFile")
+		return
+	}
+
+	// IPv6
+
+	macs, err = parseMAC6File()
+	if err != nil {
+		slog.With("err", err).Error("Unable to parse MACFile")
+		return
+	}
+
+	for i := range macs {
+		if macs[i] == r.Mac {
+			macs = remove(macs, i)
+			break
+		}
+	}
+
+	err = writeMAC6File(macs, s.conf.Firewall.ShorewallIF)
 	if err != nil {
 		slog.With("err", err).Error("Unable to write MACFile")
 		return
@@ -97,8 +146,16 @@ func shellExec(command string) (string, string, error) {
 	return stdout.String(), stderr.String(), err
 }
 
-func parseMACFile() ([]string, error) {
-	buff, err := os.ReadFile(MACLIST_PATH)
+func parseMAC4File() ([]string, error) {
+	return parseMACFile(MACLIST4_PATH)
+}
+
+func parseMAC6File() ([]string, error) {
+	return parseMACFile(MACLIST6_PATH)
+}
+
+func parseMACFile(path string) ([]string, error) {
+	buff, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
@@ -123,8 +180,16 @@ func parseMACFile() ([]string, error) {
 	return macs, nil
 }
 
+func writeMAC4File(macs []string, inter string) error {
+	return writeMACFile(MACLIST4_PATH, macs, inter)
+}
+
+func writeMAC6File(macs []string, inter string) error {
+	return writeMACFile(MACLIST6_PATH, macs, inter)
+}
+
 // Ethernet Interface as input
-func writeMACFile(macs []string, inter string) error {
+func writeMACFile(path string, macs []string, inter string) error {
 	var buff bytes.Buffer
 
 	buff.Write([]byte("#DISPOSITION\tINTERFACE\tMAC\n"))
@@ -132,7 +197,7 @@ func writeMACFile(macs []string, inter string) error {
 		buff.Write([]byte(fmt.Sprintf("ACCEPT\t%s\t%s\n", inter, macs[i])))
 	}
 
-	return os.WriteFile(MACLIST_PATH, buff.Bytes(), 0644)
+	return os.WriteFile(path, buff.Bytes(), 0644)
 }
 
 func reload() {
