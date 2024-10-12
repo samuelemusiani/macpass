@@ -8,3 +8,6 @@ macpassd:
 
 build_dir:
   mkdir -p build
+
+test:
+  go test -v ./...
