@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/coreos/go-iptables/iptables"
-	"github.com/musianisamuele/macpass/cmd/macpassd/config"
-	"github.com/musianisamuele/macpass/cmd/macpassd/registration"
+	"github.com/musianisamuele/macpass/macpassd/config"
+	"github.com/musianisamuele/macpass/macpassd/registration"
 )
 
 type Iptables struct {

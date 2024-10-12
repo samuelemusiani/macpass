@@ -12,8 +12,8 @@ import (
 	"strconv"
 	"syscall"
 
-	"github.com/musianisamuele/macpass/cmd/macpassd/config"
-	"github.com/musianisamuele/macpass/cmd/macpassd/fw"
+	"github.com/musianisamuele/macpass/macpassd/config"
+	"github.com/musianisamuele/macpass/macpassd/fw"
 )
 
 var socket net.Listener

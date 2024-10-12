@@ -4,8 +4,8 @@ import (
 	"internal/comunication"
 	"log/slog"
 
-	"github.com/musianisamuele/macpass/cmd/macpassd/fw"
-	"github.com/musianisamuele/macpass/cmd/macpassd/registration"
+	"github.com/musianisamuele/macpass/macpassd/fw"
+	"github.com/musianisamuele/macpass/macpassd/registration"
 )
 
 func handleRequest(newEntry comunication.Request, fw fw.Firewall) {

@@ -10,8 +10,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/musianisamuele/macpass/cmd/macpassd/config"
-	"github.com/musianisamuele/macpass/cmd/macpassd/registration"
+	"github.com/musianisamuele/macpass/macpassd/config"
+	"github.com/musianisamuele/macpass/macpassd/registration"
 )
 
 const (

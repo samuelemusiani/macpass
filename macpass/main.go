@@ -9,9 +9,9 @@ import (
 
 	"internal/comunication"
 
-	"github.com/musianisamuele/macpass/cmd/macpass/config"
-	"github.com/musianisamuele/macpass/cmd/macpass/db"
-	"github.com/musianisamuele/macpass/cmd/macpass/input"
+	"github.com/musianisamuele/macpass/macpass/config"
+	"github.com/musianisamuele/macpass/macpass/db"
+	"github.com/musianisamuele/macpass/macpass/input"
 
 	krbclient "github.com/jcmturner/gokrb5/v8/client"
 	krbconfig "github.com/jcmturner/gokrb5/v8/config"

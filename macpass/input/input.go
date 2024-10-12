@@ -15,8 +15,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/musianisamuele/macpass/cmd/macpass/config"
-	"github.com/musianisamuele/macpass/cmd/macpass/db"
+	"github.com/musianisamuele/macpass/macpass/config"
+	"github.com/musianisamuele/macpass/macpass/db"
 	"github.com/musianisamuele/macpass/pkg/macparse"
 	"golang.org/x/term"
 )

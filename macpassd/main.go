@@ -6,9 +6,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/musianisamuele/macpass/cmd/macpassd/config"
-	"github.com/musianisamuele/macpass/cmd/macpassd/fw"
-	"github.com/musianisamuele/macpass/cmd/macpassd/registration"
+	"github.com/musianisamuele/macpass/macpassd/config"
+	"github.com/musianisamuele/macpass/macpassd/fw"
+	"github.com/musianisamuele/macpass/macpassd/registration"
 )
 
 // var entriesLogger *log.Logger

@@ -3,7 +3,7 @@ package fw
 import (
 	"errors"
 
-	"github.com/musianisamuele/macpass/cmd/macpassd/registration"
+	"github.com/musianisamuele/macpass/macpassd/registration"
 )
 
 type Firewall interface {

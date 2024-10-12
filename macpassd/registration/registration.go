@@ -12,7 +12,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/musianisamuele/macpass/cmd/macpass/config"
+	"github.com/musianisamuele/macpass/macpass/config"
 )
 
 // A Registration represent a pass that is binded to a user. The pass allow a

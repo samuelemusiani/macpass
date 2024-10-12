@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/j-keck/arping"
-	"github.com/musianisamuele/macpass/cmd/macpassd/config"
-	"github.com/musianisamuele/macpass/cmd/macpassd/registration"
+	"github.com/musianisamuele/macpass/macpassd/config"
+	"github.com/musianisamuele/macpass/macpassd/registration"
 	"github.com/vishvananda/netlink"
 )
 
