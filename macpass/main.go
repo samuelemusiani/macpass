@@ -1,10 +1,8 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
-	"net"
 	"strings"
 
 	"internal/comunication"
@@ -12,6 +10,7 @@ import (
 	"github.com/musianisamuele/macpass/macpass/config"
 	"github.com/musianisamuele/macpass/macpass/db"
 	"github.com/musianisamuele/macpass/macpass/input"
+	"github.com/musianisamuele/macpass/macpass/send"
 
 	krbclient "github.com/jcmturner/gokrb5/v8/client"
 	krbconfig "github.com/jcmturner/gokrb5/v8/config"
@@ -22,6 +21,11 @@ func main() {
 	conf := config.Get()
 	db.Connect(conf.DBPath)
 
+	sender, err := send.New(&conf.Server)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	user := login()
 	macAdd := input.Mac(user)
 	time := input.RegistrationTime()
@@ -30,7 +34,7 @@ func main() {
 	fmt.Println(time)
 
 	db.InsertUser(user, macAdd)
-	send(comunication.Request{User: user, Mac: macAdd, Duration: time})
+	sender.Send(comunication.Request{User: user, Mac: macAdd, Duration: time})
 }
 
 func login() string {
@@ -73,24 +77,4 @@ func login() string {
 	}
 	log.Fatal("Could not authenticate")
 	return ""
-}
-
-func send(r comunication.Request) {
-	// Connect to macpassd socket
-	conn, err := net.Dial("unix", config.Get().SocketPath)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	jsonData, err := json.Marshal(r)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	_, err = conn.Write(jsonData)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	conn.Close()
 }
