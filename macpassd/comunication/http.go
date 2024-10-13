@@ -44,6 +44,11 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method is not allowed\n", http.StatusMethodNotAllowed)
+		return
+	}
+
 	// POST
 
 	body, err := io.ReadAll(r.Body)
