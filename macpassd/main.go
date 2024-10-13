@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/musianisamuele/macpass/macpassd/comunication"
 	"github.com/musianisamuele/macpass/macpassd/config"
 	"github.com/musianisamuele/macpass/macpassd/fw"
 	"github.com/musianisamuele/macpass/macpassd/registration"
@@ -68,7 +69,7 @@ func startDaemon(fw fw.Firewall) {
 
 	fw.Init()
 
-	initComunication()
+	comunication.Init()
 	registration.Init()
 
 	// Reload state from db to avoid dropping connection on restart
@@ -78,7 +79,7 @@ func startDaemon(fw fw.Firewall) {
 		fw.Allow(old[i])
 	}
 
-	go handleComunication(fw)
+	go comunication.Listen(fw)
 	conf := config.Get()
 
 	go scanNeighbours()

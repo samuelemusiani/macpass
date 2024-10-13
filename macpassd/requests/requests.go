@@ -1,4 +1,4 @@
-package main
+package requests
 
 import (
 	"internal/comunication"
@@ -8,7 +8,7 @@ import (
 	"github.com/musianisamuele/macpass/macpassd/registration"
 )
 
-func handleRequest(newEntry comunication.Request, fw fw.Firewall) {
+func Handle(newEntry comunication.Request, fw fw.Firewall) {
 	// Need too check if it's a new request
 	// If it's new we add it on the registration and allow it on the firewall
 	// If it's not new we semply update the old entry end time

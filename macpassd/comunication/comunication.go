@@ -1,4 +1,4 @@
-package main
+package comunication
 
 import (
 	"encoding/json"
@@ -14,11 +14,12 @@ import (
 
 	"github.com/musianisamuele/macpass/macpassd/config"
 	"github.com/musianisamuele/macpass/macpassd/fw"
+	"github.com/musianisamuele/macpass/macpassd/requests"
 )
 
 var socket net.Listener
 
-func initComunication() {
+func Init() {
 	slog.Info("Initializing comunications with macpass")
 	conf := config.Get()
 
@@ -63,7 +64,7 @@ func initComunication() {
 	}()
 }
 
-func handleComunication(fw fw.Firewall) {
+func Listen(fw fw.Firewall) {
 	slog.With("socketAdd: ", socket.Addr().String()).
 		Info("Listening for new comunication on socket.")
 
@@ -90,6 +91,6 @@ func handleComunication(fw fw.Firewall) {
 			slog.With("error", err).Error("Decoding comunication from macpass")
 		}
 
-		handleRequest(newEntry, fw)
+		requests.Handle(newEntry, fw)
 	}
 }
