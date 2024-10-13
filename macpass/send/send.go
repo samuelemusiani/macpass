@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"internal/comunication"
 	"log"
 	"net"
@@ -77,13 +78,14 @@ func (c *HttpClient) Send(r comunication.Request) {
 
 	rr := bytes.NewReader(jsonData)
 
-	res, err := http.Post(http.MethodPost, "/", rr)
+	url := fmt.Sprintf("http://%s:%d/", c.Url, c.Port)
+	res, err := http.Post(url, "application/json", rr)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer res.Body.Close()
 
-	if res.Status != "200 OK" {
+	if res.Status != "202 Accepted" {
 		log.Fatal("Bad response from server")
 	}
 }

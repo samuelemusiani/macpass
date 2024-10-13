@@ -30,6 +30,7 @@ func initHttp(conf *config.HttpServer) (*HttpServer, error) {
 
 func (s *HttpServer) Listen(fw fw.Firewall) {
 	firewall = fw
+	slog.With("addr", s.conf.Bind).Info("Listening")
 	http.ListenAndServe(s.conf.Bind, &s.s)
 }
 
