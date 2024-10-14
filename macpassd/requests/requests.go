@@ -9,11 +9,18 @@ import (
 )
 
 func Handle(newEntry comunication.Request, fw fw.Firewall) {
-	// Need too check if it's a new request
 	// If it's new we add it on the registration and allow it on the firewall
-	// If it's not new we semply update the old entry end time
+	// If it's not new we do nothing
 
-	// For now we assume it's always a new request
+	e := registration.GetAllEntries()
+	for i := range e {
+		if e[i].Mac == newEntry.Mac {
+			// Registration already present. Do nothing
+			return
+		}
+	}
+
+	// It's always a new request
 
 	slog.With("requst", newEntry).Info("Handlig new request")
 
