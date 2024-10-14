@@ -231,6 +231,11 @@ func reload() {
 	if err != nil {
 		slog.With("err", err, "stderr", stderr).Error("Can't reload shorewall")
 	}
+
+	_, stderr, err = shellExec("shorewall -6 reload")
+	if err != nil {
+		slog.With("err", err, "stderr", stderr).Error("Can't reload shorewall6")
+	}
 }
 
 func remove(s []maclistEntry, i int) []maclistEntry {
