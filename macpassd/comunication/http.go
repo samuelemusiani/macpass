@@ -2,7 +2,6 @@ package comunication
 
 import (
 	"encoding/json"
-	"errors"
 	"internal/comunication"
 	"io"
 	"log/slog"
@@ -83,15 +82,8 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func isAuthenticated(r *http.Request, secret string) bool {
-	c, err := r.Cookie("X-Macpass-Secret")
-	if err != nil {
-		if !errors.Is(err, http.ErrNoCookie) {
-			slog.With("err", err).Error("Reading coockie from request")
-		}
-		return false
-	}
-
-	if c.Value == secret {
+	s := r.Header.Get("X-Macpass-Secret")
+	if s == secret {
 		return true
 	}
 

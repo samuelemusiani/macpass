@@ -21,3 +21,17 @@ func TestGetRootHandler(t *testing.T) {
 	assert.Equal(t, rr.Code, http.StatusOK)
 	assert.Equal(t, rr.Body.String(), "Hello from Macpassd!")
 }
+
+func TestNoAuthGetRootHandler(t *testing.T) {
+	secret = "castorone"
+	req, err := http.NewRequest("POST", "/", nil)
+	assert.NilError(t, err)
+
+	rr := httptest.NewRecorder()
+
+	handler := http.HandlerFunc(rootHandler)
+
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(t, rr.Code, http.StatusUnauthorized)
+}
