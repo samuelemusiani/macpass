@@ -29,8 +29,9 @@ type Socket struct {
 }
 
 type HttpClient struct {
-	Url  string
-	Port uint16
+	Url    string
+	Port   uint16
+	Secret string
 }
 
 func New(conf *config.Server) (Sender, error) {
@@ -42,8 +43,9 @@ func New(conf *config.Server) (Sender, error) {
 
 	case SendHttpType:
 		return &HttpClient{
-			Url:  conf.Http.Url,
-			Port: conf.Http.Port,
+			Url:    conf.Http.Url,
+			Port:   conf.Http.Port,
+			Secret: conf.Http.Secret,
 		}, nil
 	default:
 		return nil, errors.New("Type of sender not valid")
@@ -79,7 +81,12 @@ func (c *HttpClient) Send(r comunication.Request) {
 	rr := bytes.NewReader(jsonData)
 
 	url := fmt.Sprintf("http://%s:%d/", c.Url, c.Port)
-	res, err := http.Post(url, "application/json", rr)
+
+	req, err := http.NewRequest(http.MethodPost, url, rr)
+	req.Header.Set("X-Macpass-Secret", c.Secret)
+
+	res, err := http.DefaultClient.Do(req)
+
 	if err != nil {
 		log.Fatal(err)
 	}

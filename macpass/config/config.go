@@ -16,8 +16,9 @@ type Socket struct {
 }
 
 type HttpServer struct {
-	Url  string `json:"url"`
-	Port uint16 `json:"port"`
+	Url    string `json:"url"`
+	Port   uint16 `json:"port"`
+	Secret string `json:"secret"`
 }
 
 type Server struct {

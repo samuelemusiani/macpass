@@ -2,6 +2,7 @@ package comunication
 
 import (
 	"encoding/json"
+	"errors"
 	"internal/comunication"
 	"io"
 	"log/slog"
@@ -19,11 +20,14 @@ type HttpServer struct {
 }
 
 var firewall fw.Firewall
+var secret string
 
 func initHttp(conf *config.HttpServer) (*HttpServer, error) {
 	var server HttpServer
 	server.s.HandleFunc("/", rootHandler)
 	server.conf = conf
+
+	secret = conf.Secret
 
 	return &server, nil
 }
@@ -50,6 +54,12 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !isAuthenticated(r, secret) {
+		slog.With("req", *r).Warn("Request not authorized")
+		http.Error(w, "Secret not provided. Can't authorize", http.StatusUnauthorized)
+		return
+	}
+
 	// POST
 
 	body, err := io.ReadAll(r.Body)
@@ -70,4 +80,20 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 	requests.Handle(mReq, firewall)
 	w.WriteHeader(http.StatusAccepted)
 	return
+}
+
+func isAuthenticated(r *http.Request, secret string) bool {
+	c, err := r.Cookie("X-Macpass-Secret")
+	if err != nil {
+		if !errors.Is(err, http.ErrNoCookie) {
+			slog.With("err", err).Error("Reading coockie from request")
+		}
+		return false
+	}
+
+	if c.Value == secret {
+		return true
+	}
+
+	return false
 }
