@@ -23,6 +23,6 @@ func TestParseConfig(t *testing.T) {
 	err := ParseConfig("./config.yaml")
 	assert.NilError(t, err)
 	conf := Get()
-	assert.Equal(t, conf.SocketPath, "/tmp/macpass.sock")
+	assert.Equal(t, conf.Server.Socket.Path, "/tmp/macpass.sock")
 	assert.Equal(t, conf.MaxConnectionTime, 8)
 }

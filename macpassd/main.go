@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/musianisamuele/macpass/macpassd/comunication"
 	"github.com/musianisamuele/macpass/macpassd/config"
 	"github.com/musianisamuele/macpass/macpassd/fw"
 	"github.com/musianisamuele/macpass/macpassd/registration"
@@ -56,19 +57,25 @@ func main() {
 
 	firewall, err := fw.New(fw.FirewallType(conf.Firewall.Type))
 	if err != nil {
-		slog.With("err", err).Error("Erro creating firewall")
+		slog.With("err", err).Error("Error creating firewall")
 		os.Exit(1)
 	}
 
-	startDaemon(firewall)
+	slog.Info("Initializing comunications with macpass")
+	listener, err := comunication.New(&conf.Server)
+	if err != nil {
+		slog.With("err", err).Error("Error creating comunicator")
+		os.Exit(1)
+	}
+
+	startDaemon(listener, firewall)
 }
 
-func startDaemon(fw fw.Firewall) {
+func startDaemon(listener comunication.Comunicator, fw fw.Firewall) {
 	slog.Info("Starting macpassd daemon")
 
 	fw.Init()
 
-	initComunication()
 	registration.Init()
 
 	// Reload state from db to avoid dropping connection on restart
@@ -78,7 +85,7 @@ func startDaemon(fw fw.Firewall) {
 		fw.Allow(old[i])
 	}
 
-	go handleComunication(fw)
+	go listener.Listen(fw)
 	conf := config.Get()
 
 	go scanNeighbours()

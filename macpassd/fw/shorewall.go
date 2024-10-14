@@ -27,6 +27,13 @@ type Shorewall struct {
 	conf *config.Config
 }
 
+type maclistEntry struct {
+	Disposition string
+	Interface   string
+	Mac         string
+	IPAddr      string
+}
+
 func (s *Shorewall) Init() {
 	slog.Info("Initializing shorewall")
 
@@ -54,15 +61,19 @@ func (s *Shorewall) Allow(r registration.Registration) {
 
 	// IPv4
 
-	macs, err := parseMAC4File()
+	entries, err := parseMAC4File()
 	if err != nil {
 		slog.With("err", err).Error("Unable to parse MACFile")
 		return
 	}
 
-	macs = append(macs, r.Mac)
+	entries = append(entries, maclistEntry{
+		Disposition: "ACCEPT",
+		Interface:   s.conf.Firewall.ShorewallIF,
+		Mac:         r.Mac,
+	})
 
-	err = writeMAC4File(macs, s.conf.Firewall.ShorewallIF)
+	err = writeMAC4File(entries)
 	if err != nil {
 		slog.With("err", err).Error("Unable to write MACFile")
 		return
@@ -70,15 +81,19 @@ func (s *Shorewall) Allow(r registration.Registration) {
 
 	// IPv6
 
-	macs, err = parseMAC6File()
+	entries, err = parseMAC6File()
 	if err != nil {
 		slog.With("err", err).Error("Unable to parse MAC6File")
 		return
 	}
 
-	macs = append(macs, r.Mac)
+	entries = append(entries, maclistEntry{
+		Disposition: "ACCEPT",
+		Interface:   s.conf.Firewall.ShorewallIF,
+		Mac:         r.Mac,
+	})
 
-	err = writeMAC6File(macs, s.conf.Firewall.ShorewallIF)
+	err = writeMAC6File(entries)
 	if err != nil {
 		slog.With("err", err).Error("Unable to write MAC6File")
 		return
@@ -100,13 +115,13 @@ func (s *Shorewall) Delete(r registration.Registration) {
 	}
 
 	for i := range macs {
-		if macs[i] == r.Mac {
+		if macs[i].Mac == r.Mac {
 			macs = remove(macs, i)
 			break
 		}
 	}
 
-	err = writeMAC4File(macs, s.conf.Firewall.ShorewallIF)
+	err = writeMAC4File(macs)
 	if err != nil {
 		slog.With("err", err).Error("Unable to write MACFile")
 		return
@@ -121,13 +136,13 @@ func (s *Shorewall) Delete(r registration.Registration) {
 	}
 
 	for i := range macs {
-		if macs[i] == r.Mac {
+		if macs[i].Mac == r.Mac {
 			macs = remove(macs, i)
 			break
 		}
 	}
 
-	err = writeMAC6File(macs, s.conf.Firewall.ShorewallIF)
+	err = writeMAC6File(macs)
 	if err != nil {
 		slog.With("err", err).Error("Unable to write MACFile")
 		return
@@ -146,15 +161,15 @@ func shellExec(command string) (string, string, error) {
 	return stdout.String(), stderr.String(), err
 }
 
-func parseMAC4File() ([]string, error) {
+func parseMAC4File() ([]maclistEntry, error) {
 	return parseMACFile(MACLIST4_PATH)
 }
 
-func parseMAC6File() ([]string, error) {
+func parseMAC6File() ([]maclistEntry, error) {
 	return parseMACFile(MACLIST6_PATH)
 }
 
-func parseMACFile(path string) ([]string, error) {
+func parseMACFile(path string) ([]maclistEntry, error) {
 	buff, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -162,7 +177,7 @@ func parseMACFile(path string) ([]string, error) {
 
 	buffs := string(buff)
 
-	var macs []string
+	var entries []maclistEntry
 
 	for _, l := range strings.Split(buffs, "\n") {
 		fields := strings.Fields(l)
@@ -174,27 +189,38 @@ func parseMACFile(path string) ([]string, error) {
 			return nil, errors.New(fmt.Sprintf("Parsing MACFile. Line have less than 3 fields. Line: %s", l))
 		}
 
-		macs = append(macs, fields[2])
+		tmp := maclistEntry{
+			Disposition: fields[0],
+			Interface:   fields[1],
+			Mac:         fields[2],
+		}
+
+		if len(fields) == 4 {
+			tmp.IPAddr = fields[3]
+		}
+
+		entries = append(entries, tmp)
 	}
 
-	return macs, nil
+	return entries, nil
 }
 
-func writeMAC4File(macs []string, inter string) error {
-	return writeMACFile(MACLIST4_PATH, macs, inter)
+func writeMAC4File(entries []maclistEntry) error {
+	return writeMACFile(MACLIST4_PATH, entries)
 }
 
-func writeMAC6File(macs []string, inter string) error {
-	return writeMACFile(MACLIST6_PATH, macs, inter)
+func writeMAC6File(entries []maclistEntry) error {
+	return writeMACFile(MACLIST6_PATH, entries)
 }
 
 // Ethernet Interface as input
-func writeMACFile(path string, macs []string, inter string) error {
+func writeMACFile(path string, entries []maclistEntry) error {
 	var buff bytes.Buffer
 
-	buff.Write([]byte("#DISPOSITION\tINTERFACE\tMAC\n"))
-	for i := range macs {
-		buff.Write([]byte(fmt.Sprintf("ACCEPT\t%s\t%s\n", inter, macs[i])))
+	buff.Write([]byte("#DISPOSITION\tINTERFACE\tMAC\tIP\n"))
+	for i := range entries {
+		buff.Write([]byte(fmt.Sprintf("%s\t%s\t%s\t%s\n", entries[i].Disposition,
+			entries[i].Interface, entries[i].Mac, entries[i].IPAddr)))
 	}
 
 	return os.WriteFile(path, buff.Bytes(), 0644)
@@ -205,9 +231,14 @@ func reload() {
 	if err != nil {
 		slog.With("err", err, "stderr", stderr).Error("Can't reload shorewall")
 	}
+
+	_, stderr, err = shellExec("shorewall -6 reload")
+	if err != nil {
+		slog.With("err", err, "stderr", stderr).Error("Can't reload shorewall6")
+	}
 }
 
-func remove(s []string, i int) []string {
+func remove(s []maclistEntry, i int) []maclistEntry {
 	s[i] = s[len(s)-1]
 	return s[:len(s)-1]
 }

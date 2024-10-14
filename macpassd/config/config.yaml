@@ -1,6 +1,23 @@
-socket:
-  path: "/tmp/macpass.sock"
-  user: "user"
+# To allow comunication between macpass and macpassd there are two options:
+# - If macpass and macpassd are on the same host, you can simply use a 
+#   Unix Socket
+# - If macpass and macpassd are on different hosts (If shorewall is specified
+#   as firewall this is mandatory) you can use a http server to allow 
+#   comunications
+server:
+  # socker or http are used
+  type: socket
+
+  socket:
+    user: "user"
+    path: "/tmp/macpass.sock"
+
+  http:
+    # Address to bind the http server
+    bind: 192.168.1.254:8000
+    # To verify that the incoming message is from macpass you need to provide a 
+    # secret that match with the macpass secret
+    secret: kkfsLTCMUCt17uJa2atD8Jf3 # Random string, CHANGE THIS
 
 network:
   ip4: 192.168.1.1/24
@@ -17,6 +34,7 @@ firewall:
   type: "iptables"
   # If shorewall is the firewall, the name of the interface on shorewall (es. NET_IF)
   shorewallIF: NET_IF
+
 
 # How much time to wait to do the next network scan and old entries scan. In
 # seconds

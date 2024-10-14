@@ -5,7 +5,7 @@ import (
 )
 
 type Request struct {
-	User     string
-	Mac      string
-	Duration time.Duration
+	User     string        `json:"user"`
+	Mac      string        `json:"mac"`
+	Duration time.Duration `json:"duration"`
 }

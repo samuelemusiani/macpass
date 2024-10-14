@@ -5,7 +5,18 @@ kerberos:
 # This is used in test, every user match with a password equal to his name
 dummyLogin: false
 
-socketPath: /tmp/macpass.sock
+server:
+  # Types are socket or http. Should match what specified in macpassd config
+  type: socket
+
+  socket:
+    path: /tmp/macpass.sock
+
+  http:
+    url: 192.168.1.254
+    port: 3000
+    # MUST match with macpassd secret.
+    secret: kkfsLTCMUCt17uJa2atD8Jf3 # Random string, CHANGE THIS
 
 databasePath: ./db.sqlite
   

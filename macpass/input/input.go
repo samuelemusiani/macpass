@@ -191,7 +191,7 @@ func extractMacFromSSH() string {
 
 	var ip string
 	if !isPresent {
-		slog.Warn("Could not fine the var SSH_CLIENT")
+		slog.Warn("Could not find the var SSH_CLIENT")
 		return ""
 	}
 

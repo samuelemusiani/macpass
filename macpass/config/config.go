@@ -11,10 +11,26 @@ type KerberosConfig struct {
 	DisablePAFXFAST bool   `json:"disablePAFXFAST"`
 }
 
+type Socket struct {
+	Path string `json:"path"`
+}
+
+type HttpServer struct {
+	Url    string `json:"url"`
+	Port   uint16 `json:"port"`
+	Secret string `json:"secret"`
+}
+
+type Server struct {
+	Type   string     `json:"type"`
+	Socket Socket     `json:"socket"`
+	Http   HttpServer `json:"http"`
+}
+
 type Config struct {
 	Kerberos          KerberosConfig `json:"kerberos"`
 	DummyLogin        bool           `json:"dummyLogin"`
-	SocketPath        string         `json:"socketPath"`
+	Server            Server         `json:"server"`
 	MaxConnectionTime int            `json:"maxConnectionTime"`
 	DBPath            string         `json:"databasePath"`
 }
