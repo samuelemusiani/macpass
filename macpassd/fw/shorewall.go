@@ -32,6 +32,7 @@ type maclistEntry struct {
 	Interface   string
 	Mac         string
 	IPAddr      string
+	Comment     string
 }
 
 func (s *Shorewall) Init() {
@@ -71,6 +72,8 @@ func (s *Shorewall) Allow(r registration.Registration) {
 		Disposition: "ACCEPT",
 		Interface:   s.conf.Firewall.ShorewallIF,
 		Mac:         r.Mac,
+		IPAddr:      "",
+		Comment:     fmt.Sprintf("macpass %s", r.User),
 	})
 
 	err = writeMAC4File(entries)
@@ -195,8 +198,16 @@ func parseMACFile(path string) ([]maclistEntry, error) {
 			Mac:         fields[2],
 		}
 
-		if len(fields) == 4 {
-			tmp.IPAddr = fields[3]
+		// I don't like this
+		if len(fields) > 3 {
+			if fields[3][0] == '#' {
+				tmp.Comment = fields[3]
+			} else {
+				tmp.IPAddr = fields[3]
+				if len(fields) > 4 {
+					tmp.Comment = fields[4]
+				}
+			}
 		}
 
 		entries = append(entries, tmp)
@@ -217,10 +228,10 @@ func writeMAC6File(entries []maclistEntry) error {
 func writeMACFile(path string, entries []maclistEntry) error {
 	var buff bytes.Buffer
 
-	buff.Write([]byte("#DISPOSITION\tINTERFACE\tMAC\tIP\n"))
+	buff.Write([]byte("#DISPOSITION\tINTERFACE\tMAC\tIP\nCOMMENT"))
 	for i := range entries {
-		buff.Write([]byte(fmt.Sprintf("%s\t%s\t%s\t%s\n", entries[i].Disposition,
-			entries[i].Interface, entries[i].Mac, entries[i].IPAddr)))
+		buff.Write([]byte(fmt.Sprintf("%s\t%s\t%s\t%s\t%s\n", entries[i].Disposition,
+			entries[i].Interface, entries[i].Mac, entries[i].IPAddr, entries[i].Comment)))
 	}
 
 	return os.WriteFile(path, buff.Bytes(), 0644)
