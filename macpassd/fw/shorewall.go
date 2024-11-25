@@ -228,7 +228,7 @@ func writeMAC6File(entries []maclistEntry) error {
 func writeMACFile(path string, entries []maclistEntry) error {
 	var buff bytes.Buffer
 
-	buff.Write([]byte("#DISPOSITION\tINTERFACE\tMAC\tIP\nCOMMENT"))
+	buff.Write([]byte("#DISPOSITION\tINTERFACE\tMAC\tIP\tCOMMENT\n"))
 	for i := range entries {
 		buff.Write([]byte(fmt.Sprintf("%s\t%s\t%s\t%s\t%s\n", entries[i].Disposition,
 			entries[i].Interface, entries[i].Mac, entries[i].IPAddr, entries[i].Comment)))
