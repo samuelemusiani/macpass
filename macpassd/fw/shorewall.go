@@ -73,7 +73,7 @@ func (s *Shorewall) Allow(r registration.Registration) {
 		Interface:   s.conf.Firewall.ShorewallIF,
 		Mac:         r.Mac,
 		IPAddr:      "",
-		Comment:     fmt.Sprintf("#macpass %s", r.User),
+		Comment:     fmt.Sprintf("#%s", r.User),
 	})
 
 	err = writeMAC4File(entries)
@@ -94,6 +94,8 @@ func (s *Shorewall) Allow(r registration.Registration) {
 		Disposition: "ACCEPT",
 		Interface:   s.conf.Firewall.ShorewallIF,
 		Mac:         r.Mac,
+		IPAddr:      "",
+		Comment:     fmt.Sprintf("#%s", r.User),
 	})
 
 	err = writeMAC6File(entries)
