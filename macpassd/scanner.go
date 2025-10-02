@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net"
 	"os/exec"
+	"slices"
 	"strings"
 	"time"
 
@@ -80,36 +81,13 @@ func isRegistrationStillConnected(e registration.Registration) bool {
 	arping.SetTimeout(1 * time.Second) // should be put in config
 
 	slog.With("Registration", e.String()).Debug("Checking registration")
-	for _, ip := range e.Ips {
-		if isIPStillConnected(ip) {
-			return true
-		}
-	}
 
-	if len(e.Ips) > 0 {
-		return false
-	} else {
+	if len(e.Ips) == 0 {
 		//if we do not have ips yet it's probably that is not connected yet
 		return true
 	}
-}
 
-func isIpPrenset(set []net.IP, ip net.IP) bool {
-	if len(set) == 0 {
-		return false
-	}
-
-	// Likely because most devices have 1 ip
-	if set[0].Equal(ip) {
-		return true
-	}
-
-	for _, i := range set {
-		if i.Equal(ip) {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(e.Ips, isIPStillConnected)
 }
 
 func isIPStillConnected(ip net.IP) bool {

@@ -232,8 +232,8 @@ func writeMACFile(path string, entries []maclistEntry) error {
 
 	buff.Write([]byte("#DISPOSITION\tINTERFACE\tMAC\tIP\tCOMMENT\n"))
 	for i := range entries {
-		buff.Write([]byte(fmt.Sprintf("%s\t%s\t%s\t%s\t%s\n", entries[i].Disposition,
-			entries[i].Interface, entries[i].Mac, entries[i].IPAddr, entries[i].Comment)))
+		buff.Write(fmt.Appendf([]byte{}, "%s\t%s\t%s\t%s\t%s\n", entries[i].Disposition,
+			entries[i].Interface, entries[i].Mac, entries[i].IPAddr, entries[i].Comment))
 	}
 
 	return os.WriteFile(path, buff.Bytes(), 0644)
