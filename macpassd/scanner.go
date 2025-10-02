@@ -83,26 +83,26 @@ func isRegistrationStillConnected(e registration.Registration) bool {
 		return true
 	}
 
-	connected := false
+	globalConnected := false
 
 	for _, ip := range e.Ips {
 		m, connected := isIPStillConnectedWithMac(ip)
 		if connected {
-			slog.With("ip", ip, "mac", m).Debug("IP is still connected")
+			slog.With("ip", ip, "mac", m.String()).Debug("IP is still connected")
 			if m != nil && m.String() != e.Mac {
 				// The mac address changed
 				slog.With("oldMac", e.Mac, "newMac", m.String(), "ip", ip).
 					Warn("The mac address associated with the ip changed")
 			}
-			connected = true
+			globalConnected = true
 		} else {
 			slog.With("ip", ip).Debug("IP is not connected")
 		}
 	}
-	if !connected {
+	if !globalConnected {
 		slog.With("registration", e.String()).Debug("The registration is not connected")
 	}
-	return connected
+	return globalConnected
 }
 
 func isIPStillConnected(ip net.IP) bool {
