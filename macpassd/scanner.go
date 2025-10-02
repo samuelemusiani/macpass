@@ -2,12 +2,10 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"log"
 	"log/slog"
 	"net"
 	"os/exec"
-	"slices"
 	"strings"
 	"time"
 
@@ -79,28 +77,51 @@ func isInSubnet(ip net.IP, network *net.IPNet) bool {
 
 func isRegistrationStillConnected(e registration.Registration) bool {
 	arping.SetTimeout(1 * time.Second) // should be put in config
-
 	slog.With("Registration", e.String()).Debug("Checking registration")
 
 	if len(e.Ips) == 0 {
-		//if we do not have ips yet it's probably that is not connected yet
 		return true
 	}
 
-	return slices.ContainsFunc(e.Ips, isIPStillConnected)
+	connected := false
+
+	for _, ip := range e.Ips {
+		m, connected := isIPStillConnectedWithMac(ip)
+		if connected {
+			slog.With("ip", ip, "mac", m).Debug("IP is still connected")
+			if m != nil && m.String() != e.Mac {
+				// The mac address changed
+				slog.With("oldMac", e.Mac, "newMac", m.String(), "ip", ip).
+					Warn("The mac address associated with the ip changed")
+			}
+			connected = true
+		} else {
+			slog.With("ip", ip).Debug("IP is not connected")
+		}
+	}
+	if !connected {
+		slog.With("registration", e.String()).Debug("The registration is not connected")
+	}
+	return connected
 }
 
 func isIPStillConnected(ip net.IP) bool {
+	_, connected := isIPStillConnectedWithMac(ip)
+	return connected
+}
+
+func isIPStillConnectedWithMac(ip net.IP) (net.HardwareAddr, bool) {
 	slog.With("ip", ip).Debug("Checking ip")
 
 	if ip.To4() != nil { // Is an IPv4
-		_, _, err := arping.Ping(ip)
+		m, _, err := arping.Ping(ip)
 		if err != nil {
 			slog.With("ip", ip, "err", err).Debug("error during arping")
-			return false
+			return nil, false
 		}
+
 		slog.With("ip", ip).Debug("IP responded to arping")
-		return true
+		return m, true
 	}
 
 	// Is an IPv6
@@ -115,7 +136,7 @@ func isIPStillConnected(ip net.IP) bool {
 	 * is alive or not.
 	 */
 
-	cmd := exec.Command("sh", "-c", fmt.Sprintf("ping -c 1 -w 1 %s", ip.String()))
+	cmd := exec.Command("ping", "-c", "1", "-w", "1", ip.String())
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -124,12 +145,12 @@ func isIPStillConnected(ip net.IP) bool {
 	err := cmd.Run()
 	if err == nil {
 		slog.With("ip", ip).Debug("Host reachable")
-		return true
+		return nil, true
 	} else if strings.Contains(err.Error(), "1") {
 		slog.With("ip", ip).Debug("Host unreachable")
-		return false
+		return nil, false
 	} else {
 		slog.With("ip", ip, "err", err.Error()+": "+stderr.String()).Error("During ping")
+		return nil, false
 	}
-	return false
 }
